@@ -1,0 +1,69 @@
+{
+  "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+  "facts": [
+    {
+      "name": "submitted_documents",
+      "value": [
+        "claim_form",
+        "hospital_bill",
+        "discharge_summary"
+      ],
+      "source": {
+        "document": "claim_form.pdf",
+        "page": 1,
+        "quote": "Documents enclosed: Claim Form, Hospital Bill, Discharge Summary"
+      }
+    },
+    {
+      "name": "hospitalization_details",
+      "value": {
+        "policy_inception_date": "2026-01-01",
+        "admission_date": "2026-02-15",
+        "cause": "illness",
+        "diagnosis": "Acute viral gastroenteritis",
+        "days_elapsed": 45
+      },
+      "source": {
+        "document": "discharge_summary.pdf",
+        "page": 1,
+        "quote": "CITY CARE HOSPITAL - DISCHARGE SUMMARY\nPatient: Synthetic Patient A\nDate of admission: 2026-02-15\nDate of discharge: 2026-02-19\nCause of hospitalization: Illness\nDiagnosis: Acute viral gastroenteritis\nTreatment: IV fluids, antiemetics, observation\nCondition at discharge: Stable"
+      }
+    },
+    {
+      "name": "room_rent_billing",
+      "value": {
+        "room_type": "executive_suite",
+        "daily_rate": 7500,
+        "days": 4,
+        "total_amount": 30000
+      },
+      "source": {
+        "document": "hospital_bill.pdf",
+        "page": 1,
+        "quote": "Executive Suite Room Charges: 4 days @ INR 7500.00 per day = INR 30000.00."
+      }
+    }
+  ],
+  "citation_checks": {
+    "submitted_documents": {
+      "verified": true,
+      "cited_page": 1,
+      "found_on_page": 1,
+      "reason": "verified"
+    },
+    "hospitalization_details": {
+      "verified": true,
+      "cited_page": 1,
+      "found_on_page": 1,
+      "reason": "verified"
+    },
+    "room_rent_billing": {
+      "verified": true,
+      "cited_page": 1,
+      "found_on_page": 1,
+      "reason": "verified"
+    }
+  },
+  "needs_review": [],
+  "rejected": []
+}
