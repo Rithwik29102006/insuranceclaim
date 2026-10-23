@@ -48,9 +48,48 @@ DATA_DIR = ROOT_DIR / "data"
 PACKETS_DIR = DATA_DIR / "packets"
 RULEBOOK_PATH = DATA_DIR / "gold_rulebook.json"
 EVALUATION_DIR = ROOT_DIR / "evaluation"
+CONFIG_DIR = ROOT_DIR / "config"
+DEFAULT_PRICING_PATH = CONFIG_DIR / "model_pricing.json"
 
 DEFAULT_SEED = 20261022
 PROMPT_VERSION = "v2.0-claim-extractor"
+
+
+# -----------------------------------------------------------------------------
+# Pricing Table & Cost Accounting Utilities
+# -----------------------------------------------------------------------------
+def load_pricing_table(config_path: Path = DEFAULT_PRICING_PATH) -> Dict[str, Dict[str, float]]:
+    """Load model pricing catalog from configuration file.
+
+    Raises:
+        FileNotFoundError: If the pricing configuration file is missing.
+    """
+    if not config_path.exists():
+        raise FileNotFoundError(f"Model pricing configuration not found: {config_path}")
+    with open(config_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def calculate_token_cost(
+    model_id: str,
+    prompt_tokens: int,
+    completion_tokens: int,
+    pricing_table: Dict[str, Any],
+) -> float:
+    """Calculate USD cost for input/output tokens according to model pricing.
+
+    Fails loudly with KeyError if model_id is missing from pricing table.
+    """
+    if model_id not in pricing_table:
+        raise KeyError(
+            f"Missing pricing configuration for model: '{model_id}'. "
+            f"Configured models in pricing catalog: {list(pricing_table.keys())}"
+        )
+    pricing = pricing_table[model_id]
+    input_rate = float(pricing["price_per_million_input_usd"])
+    output_rate = float(pricing["price_per_million_output_usd"])
+    cost = (prompt_tokens * input_rate + completion_tokens * output_rate) / 1_000_000.0
+    return round(cost, 6)
 
 
 # -----------------------------------------------------------------------------
@@ -82,6 +121,8 @@ class PacketEvaluationResult:
     citation_accuracy: float
     ocr_status: str  # "ok", "ocr_applied", "ocr_unavailable"
     latency_ms: float
+    model_id: str
+    cost_usd: float
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
@@ -541,9 +582,23 @@ def evaluate_packet(
     seed: int = DEFAULT_SEED,
     client: Any = None,
     mock_ocr: bool = False,
+    pricing_table: Optional[Dict[str, Any]] = None,
 ) -> PacketEvaluationResult:
     """Run extraction, citation checking, and rule evaluation for a single packet."""
     t0 = time.perf_counter()
+    if pricing_table is None:
+        pricing_table = load_pricing_table()
+
+    # Determine model id for token pricing
+    if strategy == "mock":
+        model_id = "mock-nemotron-offline"
+    elif strategy == "routed":
+        if packet_id in ("packet_06", "packet_07", "packet_11", "packet_12"):
+            model_id = os.getenv("NEBIUS_MODEL_REASONING", "nvidia/nemotron-3-super-120b-a12b")
+        else:
+            model_id = os.getenv("NEBIUS_MODEL_FAST", "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B")
+    else:
+        model_id = os.getenv("NEBIUS_MODEL_FAST", "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B")
 
     # Load scenario ID and ground truth
     facts_file = packet_dir / "ground_truth_facts.json"
@@ -578,6 +633,14 @@ def evaluate_packet(
         strategy=strategy,
         seed=seed,
         client=client,
+    )
+
+    # Calculate token cost (fails loudly if model is unpriced)
+    cost_usd = calculate_token_cost(
+        model_id=model_id,
+        prompt_tokens=tokens["prompt_tokens"],
+        completion_tokens=tokens["completion_tokens"],
+        pricing_table=pricing_table,
     )
 
     # 3. Fact Accuracy Comparison
@@ -679,6 +742,8 @@ def evaluate_packet(
         citation_accuracy=citation_accuracy,
         ocr_status=ocr_status,
         latency_ms=latency_ms,
+        model_id=model_id,
+        cost_usd=cost_usd,
         prompt_tokens=tokens["prompt_tokens"],
         completion_tokens=tokens["completion_tokens"],
         total_tokens=tokens["total_tokens"],
@@ -750,6 +815,9 @@ def aggregate_benchmark_report(
     total_completion_tokens = sum(r.completion_tokens for r in results)
     total_tokens = sum(r.total_tokens for r in results)
 
+    total_cost_usd = round(sum(r.cost_usd for r in results), 6)
+    avg_cost_per_packet_usd = round(total_cost_usd / total_packets, 6) if total_packets > 0 else 0.0
+
     failures_by_packet = {r.packet_id: r.failures for r in results if r.failures}
 
     metadata = {
@@ -771,6 +839,10 @@ def aggregate_benchmark_report(
         "citation_accuracy": round(citation_accuracy, 4),
         "average_latency_ms": round(avg_latency_ms, 2),
         "total_latency_ms": round(total_latency_ms, 2),
+        "cost_accounting": {
+            "total_cost_usd": total_cost_usd,
+            "average_cost_per_packet_usd": avg_cost_per_packet_usd,
+        },
         "token_usage": {
             "prompt_tokens": total_prompt_tokens,
             "completion_tokens": total_completion_tokens,
@@ -819,6 +891,8 @@ def format_markdown_report(report: BenchmarkEvaluationReport) -> str:
     md.append(f"| **Payout Calculation Accuracy** | {m['payout_calculation_accuracy'] * 100:.1f}% | ≥ 85.0% | {'✅ PASS' if m['payout_calculation_accuracy'] >= 0.85 else '⚠️ REVIEW'} |")
     md.append(f"| **Citation Verification Accuracy** | {m['citation_accuracy'] * 100:.1f}% | ≥ 90.0% | {'✅ PASS' if m['citation_accuracy'] >= 0.9 else '⚠️ REVIEW'} |")
     md.append(f"| **Average Latency / Packet** | {m['average_latency_ms']:.1f} ms | < 5000 ms | ✅ PASS |")
+    md.append(f"| **Total Estimated Cost** | ${m['cost_accounting']['total_cost_usd']:.6f} USD | N/A | ℹ️ INFO |")
+    md.append(f"| **Average Cost / Packet** | ${m['cost_accounting']['average_cost_per_packet_usd']:.6f} USD | N/A | ℹ️ INFO |")
     md.append(f"| **Total Token Usage** | {m['token_usage']['total_tokens']:,} tokens | N/A | ℹ️ INFO |")
 
     md.append("\n## 2. Fact Extraction Breakdown by Fact Name\n")
@@ -829,19 +903,20 @@ def format_markdown_report(report: BenchmarkEvaluationReport) -> str:
         md.append(f"| `{fname}` | {fstats['ground_truth_count']} | {fstats['matched_count']} | {acc_pct:.1f}% |")
 
     md.append("\n## 3. Per-Packet Adjudication Results\n")
-    md.append("| Packet | Scenario | OCR Status | Facts (Matched/GT) | Status Acc | Payout Acc | Citations | Latency | Issues |")
-    md.append("|---|---|---|---|---|---|---|---|---|")
+    md.append("| Packet | Scenario | OCR Status | Facts (Matched/GT) | Status Acc | Payout Acc | Citations | Latency | Cost (USD) | Issues |")
+    md.append("|---|---|---|---|---|---|---|---|---|---|")
     for p in report.packet_results:
         ocr_disp = "OCR N/A" if p["ocr_status"] == "ocr_unavailable" else ("OCR Done" if p["ocr_status"] == "ocr_applied" else "Digital")
         facts_disp = f"{p['facts_matched_count']}/{p['facts_ground_truth_count']}"
         status_disp = f"{p['status_accuracy'] * 100:.0f}%"
         payout_disp = f"{p['payout_accuracy'] * 100:.0f}%" if p["payout_expected_count"] > 0 else "N/A"
         cit_disp = f"{p['citations_verified']}/{p['citations_total']}"
+        cost_disp = f"${p.get('cost_usd', 0.0):.6f}"
         fail_cnt = len(p["failures"])
         issues_disp = f"⚠️ {fail_cnt} issue(s)" if fail_cnt > 0 else "✅ Clean"
         md.append(
             f"| `{p['packet_id']}` | {p['scenario_id'][:28]} | {ocr_disp} | {facts_disp} | "
-            f"{status_disp} | {payout_disp} | {cit_disp} | {p['latency_ms']:.0f} ms | {issues_disp} |"
+            f"{status_disp} | {payout_disp} | {cit_disp} | {p['latency_ms']:.0f} ms | {cost_disp} | {issues_disp} |"
         )
 
     if report.failures_by_packet:
@@ -864,10 +939,13 @@ def run_evaluation(
     out_path: Optional[Path] = None,
     seed: int = DEFAULT_SEED,
     mock_ocr: bool = False,
+    pricing_path: Optional[Path] = None,
 ) -> Tuple[Path, Path, BenchmarkEvaluationReport]:
     """Execute complete benchmark evaluation workflow and persist JSON and Markdown reports."""
     EVALUATION_DIR.mkdir(parents=True, exist_ok=True)
     timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    pricing_table = load_pricing_table(pricing_path or DEFAULT_PRICING_PATH)
 
     if out_path is None:
         json_out_path = EVALUATION_DIR / f"results_{timestamp_str}.json"
@@ -901,10 +979,11 @@ def run_evaluation(
             strategy=strategy,
             seed=seed,
             mock_ocr=mock_ocr,
+            pricing_table=pricing_table,
         )
         results.append(res)
         ocr_flag = f" [{res.ocr_status}]" if res.ocr_status != "ok" else ""
-        print(f"  [{idx:02d}/{len(packet_ids)}] {pid}: Facts {res.facts_matched_count}/{res.facts_ground_truth_count}, Status {res.status_accuracy * 100:.0f}%{ocr_flag}")
+        print(f"  [{idx:02d}/{len(packet_ids)}] {pid}: Facts {res.facts_matched_count}/{res.facts_ground_truth_count}, Status {res.status_accuracy * 100:.0f}%, Cost ${res.cost_usd:.6f}{ocr_flag}")
 
     report = aggregate_benchmark_report(results, strategy=strategy, seed=seed, model_ids=model_ids)
 
@@ -930,6 +1009,8 @@ def run_evaluation(
     print(f"  Violation Detection Rate: {report.metrics['detection_rate_seeded_violations'] * 100:.1f}%")
     print(f"  False-Warning Rate: {report.metrics['false_warning_rate'] * 100:.1f}%")
     print(f"  Payout Calculation Accuracy: {report.metrics['payout_calculation_accuracy'] * 100:.1f}%")
+    print(f"  Total Cost: ${report.metrics['cost_accounting']['total_cost_usd']:.6f} USD")
+    print(f"  Avg Cost / Packet: ${report.metrics['cost_accounting']['average_cost_per_packet_usd']:.6f} USD")
 
     return json_out_path, md_out_path, report
 
@@ -970,16 +1051,23 @@ def main():
         default=False,
         help="Simulate OCR availability for rasterised pages in mock testing.",
     )
+    parser.add_argument(
+        "--pricing-config",
+        default=str(DEFAULT_PRICING_PATH),
+        help="Path to JSON model pricing table.",
+    )
 
     args = parser.parse_args()
 
     out_file = Path(args.out) if args.out else None
+    pricing_file = Path(args.pricing_config) if args.pricing_config else None
     run_evaluation(
         strategy=args.strategy,
         packets_arg=args.packets,
         out_path=out_file,
         seed=args.seed,
         mock_ocr=args.mock_ocr,
+        pricing_path=pricing_file,
     )
 
 

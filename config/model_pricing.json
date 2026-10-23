@@ -1,0 +1,27 @@
+{
+  "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": {
+    "price_per_million_input_usd": 0.20,
+    "price_per_million_output_usd": 0.60,
+    "description": "NVIDIA Nemotron 3 Nano 30B via Nebius Token Factory"
+  },
+  "nvidia/nemotron-3-super-120b-a12b": {
+    "price_per_million_input_usd": 0.80,
+    "price_per_million_output_usd": 2.40,
+    "description": "NVIDIA Nemotron 3 Super 120B reasoning model via Nebius Token Factory"
+  },
+  "nvidia/nemotron-mini-4b-instruct": {
+    "price_per_million_input_usd": 0.08,
+    "price_per_million_output_usd": 0.24,
+    "description": "NVIDIA Nemotron Mini 4B Instruct via Nebius Token Factory"
+  },
+  "nvidia/nemotron-4-340b-reward": {
+    "price_per_million_input_usd": 2.00,
+    "price_per_million_output_usd": 6.00,
+    "description": "NVIDIA Nemotron 4 340B via Nebius Token Factory"
+  },
+  "mock-nemotron-offline": {
+    "price_per_million_input_usd": 0.20,
+    "price_per_million_output_usd": 0.60,
+    "description": "Mock offline Nemotron model for deterministic benchmarking"
+  }
+}
