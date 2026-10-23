@@ -4,13 +4,13 @@ Evaluates structured insurance policy rules and documented ambiguities against
 claim facts using pure deterministic Python arithmetic and logical verification.
 Avoids speculative guessing and model hallucinations by computing exact monetary
 deductions using Decimal arithmetic and raising explicit review/verification flags
-for missing inputs or ambiguous clauses.
+for missing inputs, unverified rules, or ambiguous clauses.
 """
 
 from __future__ import annotations
 
 import re
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -22,7 +22,8 @@ from src.schemas import (
     FindingStatus,
     RuleType,
     SourceRef,
-    AmbiguityRef,
+    Ambiguity,
+    ValidationStatus,
 )
 
 
@@ -37,14 +38,69 @@ def normalize_item_name(name: Any) -> str:
     return re.sub(r"[\s-]+", "_", cleaned).strip("_")
 
 
-def _to_decimal(val: Any, default: str = "0.0") -> Decimal:
-    """Safely convert a primitive number or string to Decimal."""
-    if val is None:
-        return Decimal(default)
+def _to_decimal(val: Any) -> Optional[Decimal]:
+    """Safely convert a primitive number or string to Decimal, returning None if unparseable."""
+    if val is None or isinstance(val, bool):
+        return None
     try:
         return Decimal(str(val))
     except Exception:
-        return Decimal(default)
+        return None
+
+
+def _parse_date(val: Any) -> Optional[date]:
+    """Safely parse a date from ISO format or common string representations."""
+    if not val or not isinstance(val, (str, date)):
+        return None
+    if isinstance(val, date):
+        return val
+    val_str = str(val).strip()
+    try:
+        return date.fromisoformat(val_str)
+    except Exception:
+        pass
+    for fmt in ("%d-%b-%Y", "%d/%m/%Y", "%m/%d/%Y", "%Y/%m/%d", "%d-%m-%Y"):
+        try:
+            return datetime.strptime(val_str, fmt).date()
+        except Exception:
+            pass
+    return None
+
+
+def _check_conflicting_facts_for_rule(
+    rule_type: str,
+    all_facts: List[ClaimFact],
+) -> Optional[str]:
+    """Detect if claim facts contain conflicting, duplicate, or contradicting values."""
+    # Check duplicate fact names with conflicting values
+    facts_by_name: Dict[str, List[ClaimFact]] = {}
+    for f in all_facts:
+        facts_by_name.setdefault(f.name, []).append(f)
+
+    for name, flist in facts_by_name.items():
+        if len(flist) > 1:
+            first_val = flist[0].value
+            for other in flist[1:]:
+                if other.value != first_val:
+                    return f"Duplicate fact '{name}' has conflicting values: {first_val} vs {other.value}"
+
+    # Check cross-fact amount conflicts (e.g. claim form total vs hospital bill total)
+    amounts = {}
+    for f in all_facts:
+        if isinstance(f.value, dict):
+            for k in ("total_amount", "total_billed", "claimed_amount", "billed_amount", "total_claimed"):
+                if k in f.value and f.value[k] is not None:
+                    amt = _to_decimal(f.value[k])
+                    if amt is not None:
+                        amounts[f"{f.name}.{k}"] = amt
+
+    if len(amounts) >= 2:
+        vals = list(amounts.values())
+        if any(v != vals[0] for v in vals[1:]):
+            diffs = ", ".join(f"{k}=INR {v}" for k, v in amounts.items())
+            return f"Conflicting total amounts detected across claim documents: {diffs}"
+
+    return None
 
 
 def _evaluate_required_documents(
@@ -52,10 +108,31 @@ def _evaluate_required_documents(
     facts_by_name: Dict[str, ClaimFact],
 ) -> Finding:
     """Evaluate mandatory document submission rule."""
-    req_docs = rule.parameters.get("required_documents", [])
-    min_count = rule.parameters.get("minimum_document_count", len(req_docs))
+    if not isinstance(rule.parameters, dict):
+        return Finding(
+            rule_id=rule.rule_id,
+            status=FindingStatus.UNABLE_TO_VERIFY,
+            inputs_used={},
+            calculation_steps=["Rule parameters are missing or invalid; expected dictionary."],
+            explanation="Cannot verify rule: parameters are missing or invalid.",
+            source=rule.source,
+            estimated_impact=None,
+        )
 
-    # Look for submitted_documents fact
+    req_docs_raw = rule.parameters.get("required_documents")
+    if not isinstance(req_docs_raw, (list, tuple, set)) or not req_docs_raw:
+        return Finding(
+            rule_id=rule.rule_id,
+            status=FindingStatus.UNABLE_TO_VERIFY,
+            inputs_used={},
+            calculation_steps=["Rule parameters lack 'required_documents' list."],
+            explanation="Cannot verify required documents: rule parameters do not specify required documents.",
+            source=rule.source,
+            estimated_impact=None,
+        )
+
+    req_docs = list(req_docs_raw)
+
     doc_fact = facts_by_name.get("submitted_documents")
     if doc_fact is None or doc_fact.value is None:
         return Finding(
@@ -71,7 +148,6 @@ def _evaluate_required_documents(
             estimated_impact=None,
         )
 
-    # Parse submitted documents list
     submitted_raw = doc_fact.value if isinstance(doc_fact.value, (list, tuple, set)) else [doc_fact.value]
     norm_submitted = {normalize_item_name(d) for d in submitted_raw}
     norm_required = [normalize_item_name(d) for d in req_docs]
@@ -113,9 +189,41 @@ def _evaluate_waiting_period(
     facts_by_name: Dict[str, ClaimFact],
 ) -> Finding:
     """Evaluate initial waiting period rule against hospitalization facts."""
-    duration_days = int(rule.parameters.get("duration_days", 30))
-    applies_to = rule.parameters.get("applies_to", "illness")
-    exceptions = rule.exceptions
+    if not isinstance(rule.parameters, dict):
+        return Finding(
+            rule_id=rule.rule_id,
+            status=FindingStatus.UNABLE_TO_VERIFY,
+            inputs_used={},
+            calculation_steps=["Rule parameters are missing or invalid; expected dictionary."],
+            explanation="Cannot verify waiting period: rule parameters are invalid.",
+            source=rule.source,
+            estimated_impact=None,
+        )
+
+    duration_raw = rule.parameters.get("duration_days")
+    if duration_raw is None:
+        return Finding(
+            rule_id=rule.rule_id,
+            status=FindingStatus.UNABLE_TO_VERIFY,
+            inputs_used={},
+            calculation_steps=["Rule parameters lack 'duration_days'."],
+            explanation="Cannot verify waiting period: rule parameters lack duration_days.",
+            source=rule.source,
+            estimated_impact=None,
+        )
+
+    try:
+        duration_days = int(duration_raw)
+    except Exception:
+        return Finding(
+            rule_id=rule.rule_id,
+            status=FindingStatus.UNABLE_TO_VERIFY,
+            inputs_used={"duration_days": duration_raw},
+            calculation_steps=[f"Unparseable duration_days in rule parameters: {duration_raw}."],
+            explanation="Cannot verify waiting period: rule duration_days is unparseable.",
+            source=rule.source,
+            estimated_impact=None,
+        )
 
     fact = facts_by_name.get("hospitalization_details")
     if fact is None or not isinstance(fact.value, dict):
@@ -136,14 +244,18 @@ def _evaluate_waiting_period(
     cause = normalize_item_name(val.get("cause", ""))
     days_elapsed = val.get("days_elapsed")
 
-    # If days_elapsed not given directly, attempt date arithmetic
-    if days_elapsed is None and "admission_date" in val and "policy_inception_date" in val:
+    if days_elapsed is not None:
         try:
-            adm = date.fromisoformat(str(val["admission_date"]))
-            inc = date.fromisoformat(str(val["policy_inception_date"]))
-            days_elapsed = (adm - inc).days
+            days_elapsed = int(days_elapsed)
         except Exception:
             days_elapsed = None
+
+    # Date arithmetic fallback
+    if days_elapsed is None and "admission_date" in val and "policy_inception_date" in val:
+        adm = _parse_date(val["admission_date"])
+        inc = _parse_date(val["policy_inception_date"])
+        if adm and inc:
+            days_elapsed = (adm - inc).days
 
     if days_elapsed is None:
         return Finding(
@@ -161,7 +273,7 @@ def _evaluate_waiting_period(
 
     # Check for accidental injury exception
     is_accident = (
-        cause in ("accidental_injury", "accident", "trauma", "vehicular_accident")
+        cause in ("accidental_injury", "accident", "trauma", "vehicular_accident", "injury")
         or "accident" in cause
     )
 
@@ -178,7 +290,7 @@ def _evaluate_waiting_period(
             calculation_steps=[
                 f"Computed days elapsed: {days_elapsed} days.",
                 f"Admission date is within {duration_days} days of inception.",
-                f"Evaluated policy exception: Section 2.1 exempts hospitalization necessitated solely by accidental injury.",
+                "Evaluated policy exception: Section 2.1 exempts hospitalization necessitated solely by accidental injury.",
                 "Admission cause verified as accidental injury; exception applies.",
                 "Rule status: satisfied under policy exception.",
             ],
@@ -187,7 +299,7 @@ def _evaluate_waiting_period(
             estimated_impact=0.0,
         )
 
-    # If cause is missing or ambiguous when within waiting period
+    # Missing or ambiguous cause within waiting period -> needs_review
     if not cause:
         return Finding(
             rule_id=rule.rule_id,
@@ -202,7 +314,7 @@ def _evaluate_waiting_period(
             estimated_impact=None,
         )
 
-    # Check illness waiting period threshold: strictly > duration_days is satisfied; <= duration_days is violated
+    # Illness waiting period evaluation: > duration_days is satisfied; <= duration_days is violated
     if days_elapsed > duration_days:
         return Finding(
             rule_id=rule.rule_id,
@@ -223,7 +335,6 @@ def _evaluate_waiting_period(
             estimated_impact=0.0,
         )
 
-    # Admission occurred on or before duration_days for illness
     return Finding(
         rule_id=rule.rule_id,
         status=FindingStatus.VIOLATED,
@@ -237,7 +348,7 @@ def _evaluate_waiting_period(
             f"Computed days elapsed: {days_elapsed} days.",
             f"Threshold required: > {duration_days} days.",
             f"{days_elapsed} <= {duration_days} days: Admission occurred within initial waiting period.",
-            f"Evaluated exception: Condition is {val.get('cause')} ({val.get('diagnosis')}), not accidental injury.",
+            f"Evaluated exception: Condition is {val.get('cause')}, not accidental injury.",
             f"Rule violated: expenses incurred within the first {duration_days} days for illness are excluded from coverage.",
         ],
         explanation=f"Hospitalization for illness occurred on day {days_elapsed} of the policy period, violating the mandatory {duration_days}-day initial waiting period.",
@@ -251,7 +362,28 @@ def _evaluate_room_rent_cap(
     facts_by_name: Dict[str, ClaimFact],
 ) -> Finding:
     """Evaluate room rent daily limit and proportional deduction formula."""
-    cap = _to_decimal(rule.parameters.get("cap") or rule.parameters.get("daily_limit_inr") or 5000.0)
+    if not isinstance(rule.parameters, dict):
+        return Finding(
+            rule_id=rule.rule_id,
+            status=FindingStatus.UNABLE_TO_VERIFY,
+            inputs_used={},
+            calculation_steps=["Rule parameters are missing or invalid."],
+            explanation="Cannot verify room rent cap: rule parameters are invalid.",
+            source=rule.source,
+            estimated_impact=None,
+        )
+
+    cap = _to_decimal(rule.parameters.get("cap") or rule.parameters.get("daily_limit_inr"))
+    if cap is None or cap <= 0:
+        return Finding(
+            rule_id=rule.rule_id,
+            status=FindingStatus.UNABLE_TO_VERIFY,
+            inputs_used=rule.parameters,
+            calculation_steps=["Rule parameters lack valid positive room rent cap."],
+            explanation="Cannot verify room rent cap: cap parameter is missing or non-numeric.",
+            source=rule.source,
+            estimated_impact=None,
+        )
 
     room_fact = facts_by_name.get("room_rent_billing")
     if room_fact is None or not isinstance(room_fact.value, dict):
@@ -269,27 +401,26 @@ def _evaluate_room_rent_cap(
         )
 
     val = room_fact.value
-    daily_rate_raw = val.get("daily_rate") or val.get("daily_room_rent")
-    if daily_rate_raw is None:
+    daily_rate = _to_decimal(val.get("daily_rate") or val.get("daily_room_rent"))
+    if daily_rate is None or daily_rate <= 0:
         return Finding(
             rule_id=rule.rule_id,
             status=FindingStatus.UNABLE_TO_VERIFY,
             inputs_used=val,
             calculation_steps=[
                 "Inspected room rent billing fact.",
-                "Missing daily rate value in claim fact.",
+                "Missing or non-numeric daily rate value in claim fact.",
             ],
-            explanation="Cannot verify room rent cap: daily room rent rate is missing.",
+            explanation="Cannot verify room rent cap: daily room rent rate is missing or unparseable.",
             source=rule.source,
             estimated_impact=None,
         )
 
-    daily_rate = _to_decimal(daily_rate_raw)
     days_raw = val.get("days") or val.get("days_stayed")
+    days_dec = _to_decimal(days_raw)
 
     # Boundary: rent is within or exactly equal to cap
     if daily_rate <= cap:
-        days_disp = days_raw if days_raw is not None else 1
         return Finding(
             rule_id=rule.rule_id,
             status=FindingStatus.SATISFIED,
@@ -309,8 +440,8 @@ def _evaluate_room_rent_cap(
         )
 
     # Rent exceeds cap
-    # If duration is missing / unknown, cannot determine total financial impact -> needs_review
-    if days_raw is None or _to_decimal(days_raw) <= 0:
+    # If duration is missing / non-positive, cannot determine financial impact -> needs_review
+    if days_dec is None or days_dec <= 0:
         return Finding(
             rule_id=rule.rule_id,
             status=FindingStatus.NEEDS_REVIEW,
@@ -322,7 +453,7 @@ def _evaluate_room_rent_cap(
             calculation_steps=[
                 f"Identified billed daily room rent: INR {daily_rate:.2f}.",
                 f"Daily rate exceeds cap of INR {cap:.2f}.",
-                "Attempted deduction calculation: duration in days is unknown.",
+                "Attempted deduction calculation: duration in days is unknown or invalid.",
                 "Financial impact cannot be computed without total days of stay.",
             ],
             explanation=f"Daily room rent of INR {daily_rate:.0f} exceeds INR {cap:.0f} daily limit, but total stay duration is missing from submitted records. Financial impact cannot be determined without knowing days of hospitalization.",
@@ -330,34 +461,39 @@ def _evaluate_room_rent_cap(
             estimated_impact=None,
         )
 
-    days_dec = _to_decimal(days_raw)
     daily_excess = daily_rate - cap
     excess_room_rent = daily_excess * days_dec
 
-    # Check for professional fees and OT charges in facts
+    # Extract associated professional fees and OT charges
     prof_fact = facts_by_name.get("professional_fees_billing")
     prof_total = Decimal("0.0")
     if prof_fact and isinstance(prof_fact.value, dict):
-        prof_total = _to_decimal(
-            prof_fact.value.get("total_amount")
-            or prof_fact.value.get("total_professional_fees")
-            or (
-                _to_decimal(prof_fact.value.get("surgeon_fee", 0))
-                + _to_decimal(prof_fact.value.get("anesthetist_fee", 0))
-                + _to_decimal(prof_fact.value.get("consultant_fee", 0))
-            )
-        )
-    elif prof_fact and isinstance(prof_fact.value, (int, float, str)):
-        prof_total = _to_decimal(prof_fact.value)
+        total_field = _to_decimal(prof_fact.value.get("total_amount") or prof_fact.value.get("total_professional_fees"))
+        if total_field is not None:
+            prof_total = total_field
+        else:
+            sub_sum = Decimal("0.0")
+            for sub_k in ("surgeon_fee", "anesthetist_fee", "consultant_fee", "doctor_fee"):
+                v = _to_decimal(prof_fact.value.get(sub_k))
+                if v is not None:
+                    sub_sum += v
+            prof_total = sub_sum
+    elif prof_fact:
+        dec = _to_decimal(prof_fact.value)
+        if dec is not None:
+            prof_total = dec
 
     ot_fact = facts_by_name.get("operation_theatre_billing")
     ot_total = Decimal("0.0")
     if ot_fact and isinstance(ot_fact.value, dict):
-        ot_total = _to_decimal(ot_fact.value.get("ot_charges") or ot_fact.value.get("total_amount", 0))
-    elif ot_fact and isinstance(ot_fact.value, (int, float, str)):
-        ot_total = _to_decimal(ot_fact.value)
+        dec = _to_decimal(ot_fact.value.get("ot_charges") or ot_fact.value.get("total_amount"))
+        if dec is not None:
+            ot_total = dec
+    elif ot_fact:
+        dec = _to_decimal(ot_fact.value)
+        if dec is not None:
+            ot_total = dec
 
-    # Proportional formula: payable ratio = 5000 / actual_daily_rate
     payable_ratio = cap / daily_rate
     disallow_ratio = Decimal("1.0") - payable_ratio
 
@@ -421,8 +557,29 @@ def _evaluate_sub_limit(
     facts_by_name: Dict[str, ClaimFact],
 ) -> Finding:
     """Evaluate specific surgical sub-limit rule."""
+    if not isinstance(rule.parameters, dict):
+        return Finding(
+            rule_id=rule.rule_id,
+            status=FindingStatus.UNABLE_TO_VERIFY,
+            inputs_used={},
+            calculation_steps=["Rule parameters are missing or invalid."],
+            explanation="Cannot verify sub-limit: rule parameters are invalid.",
+            source=rule.source,
+            estimated_impact=None,
+        )
+
     category = normalize_item_name(rule.parameters.get("category", "cataract_surgery"))
-    limit_per_unit = _to_decimal(rule.parameters.get("max_limit_inr", 40000.0))
+    limit_per_unit = _to_decimal(rule.parameters.get("max_limit_inr"))
+    if limit_per_unit is None or limit_per_unit <= 0 or not category:
+        return Finding(
+            rule_id=rule.rule_id,
+            status=FindingStatus.UNABLE_TO_VERIFY,
+            inputs_used=rule.parameters,
+            calculation_steps=["Rule parameters lack valid positive sub-limit or category."],
+            explanation="Cannot verify sub-limit: limit or category parameter is missing or non-numeric.",
+            source=rule.source,
+            estimated_impact=None,
+        )
 
     fact = facts_by_name.get("surgical_expenses")
     if fact is None or not isinstance(fact.value, dict):
@@ -456,9 +613,20 @@ def _evaluate_sub_limit(
             estimated_impact=None,
         )
 
-    billed_amount = _to_decimal(val.get("total_cataract_billed") or val.get("total_billed", 0))
-    eyes_count = _to_decimal(val.get("eyes_treated") or val.get("eyes_count", 1))
-    if eyes_count <= 0:
+    billed_amount = _to_decimal(val.get("total_cataract_billed") or val.get("total_billed"))
+    if billed_amount is None:
+        return Finding(
+            rule_id=rule.rule_id,
+            status=FindingStatus.UNABLE_TO_VERIFY,
+            inputs_used=val,
+            calculation_steps=["Surgical expense fact lacks valid billed amount."],
+            explanation="Cannot verify sub-limit: billed amount is missing or unparseable.",
+            source=rule.source,
+            estimated_impact=None,
+        )
+
+    eyes_count = _to_decimal(val.get("eyes_treated") or val.get("eyes_count"))
+    if eyes_count is None or eyes_count <= 0:
         eyes_count = Decimal("1.0")
 
     effective_limit = limit_per_unit * eyes_count
@@ -511,7 +679,29 @@ def _evaluate_non_payable_items(
     facts_by_name: Dict[str, ClaimFact],
 ) -> Finding:
     """Evaluate non-payable consumable and administrative items schedule."""
-    raw_excluded = rule.parameters.get("excluded_items", [])
+    if not isinstance(rule.parameters, dict):
+        return Finding(
+            rule_id=rule.rule_id,
+            status=FindingStatus.UNABLE_TO_VERIFY,
+            inputs_used={},
+            calculation_steps=["Rule parameters are missing or invalid."],
+            explanation="Cannot verify non-payable items: rule parameters are invalid.",
+            source=rule.source,
+            estimated_impact=None,
+        )
+
+    raw_excluded = rule.parameters.get("excluded_items")
+    if not isinstance(raw_excluded, (list, tuple, set)):
+        return Finding(
+            rule_id=rule.rule_id,
+            status=FindingStatus.UNABLE_TO_VERIFY,
+            inputs_used={},
+            calculation_steps=["Rule parameters lack 'excluded_items' list."],
+            explanation="Cannot verify non-payable items: excluded_items list is missing.",
+            source=rule.source,
+            estimated_impact=None,
+        )
+
     norm_excluded_set = {normalize_item_name(x) for x in raw_excluded}
 
     fact = facts_by_name.get("non_payable_items_breakdown") or facts_by_name.get("hospital_breakdown")
@@ -539,13 +729,13 @@ def _evaluate_non_payable_items(
     for entry in items_list:
         if isinstance(entry, dict):
             raw_name = entry.get("item") or entry.get("name") or entry.get("description") or ""
-            raw_amt = entry.get("amount") or entry.get("cost") or entry.get("billed_amount") or 0
+            raw_amt = entry.get("amount") or entry.get("cost") or entry.get("billed_amount")
         else:
             raw_name = str(entry)
             raw_amt = 0
 
         norm_name = normalize_item_name(raw_name)
-        amt_dec = _to_decimal(raw_amt)
+        amt_dec = _to_decimal(raw_amt) or Decimal("0.0")
 
         if norm_name in norm_excluded_set:
             matched_names.append(raw_name)
@@ -592,42 +782,51 @@ def _evaluate_non_payable_items(
 
 
 def _evaluate_ambiguity(
-    amb: AmbiguityRef,
+    amb: Ambiguity,
     facts_by_name: Dict[str, ClaimFact],
+    all_facts: List[ClaimFact],
 ) -> Finding:
-    """Evaluate documented policy ambiguity requiring human adjuster review."""
-    history_fact = facts_by_name.get("patient_medical_history")
-    if history_fact is None or not isinstance(history_fact.value, dict):
+    """Evaluate a documented policy ambiguity without hardcoded rule IDs."""
+    # Find facts that relate to this ambiguity via section, issue, or description terms
+    search_terms = set(re.findall(r"\w+", f"{amb.issue} {amb.description} {amb.section}".lower()))
+    relevant_terms = {t for t in search_terms if len(t) > 3 and t not in ("under", "with", "from", "shall", "that", "this")}
+
+    relevant_facts = []
+    for f in all_facts:
+        f_text = f"{f.name} {f.value}".lower()
+        if any(term in f_text for term in relevant_terms):
+            relevant_facts.append(f)
+
+    if not relevant_facts:
         return Finding(
             rule_id=amb.ambiguity_id,
             status=FindingStatus.UNABLE_TO_VERIFY,
             inputs_used={},
             calculation_steps=[
-                "Checked claim facts for patient medical history and pre-existing condition records.",
-                "No medical history facts found in claim submission.",
+                f"Checked claim facts for relevance to {amb.section} ({amb.issue}).",
+                "Missing input: no relevant claim facts found for this policy ambiguity.",
             ],
-            explanation="Cannot evaluate pre-existing condition exclusion: no medical history provided.",
+            explanation=f"Cannot evaluate ambiguity {amb.ambiguity_id} ({amb.section}): no relevant facts found in claim.",
             source=amb.source,
             estimated_impact=None,
         )
 
-    val = history_fact.value
+    inputs_used = {f.name: f.value for f in relevant_facts}
     return Finding(
         rule_id=amb.ambiguity_id,
         status=FindingStatus.NEEDS_REVIEW,
-        inputs_used={
-            "diagnosis": val.get("diagnosis"),
-            "pre_existing_history": val.get("pre_existing_history"),
-            "policy_clause": amb.section,
-        },
+        inputs_used=inputs_used,
         calculation_steps=[
-            "Identified claim diagnosis as chronic essential hypertension with pre-policy onset.",
-            f"Evaluated {amb.section} exclusion: applies to Pre-Existing Conditions 'as defined under applicable regulations'.",
-            "Checked policy definitions: policy does not define 'applicable regulations', nor does it state the applicable lookback window or statutory waiting period duration.",
-            "Determined finding status: needs_review. Automated rule engine cannot determine admissibility without external regulatory guidance or human adjuster review.",
-            "Financial impact: None (cannot be deterministically computed for an ambiguous condition).",
+            f"Identified claim facts relevant to policy clause {amb.section}.",
+            f"Evaluated policy clause: flagged as an ambiguity ({amb.issue}).",
+            f"Clause details: {amb.description}",
+            "Determined finding status: needs_review. Automated rule engine cannot deterministically resolve ambiguous policy language without human adjuster review.",
+            "Financial impact: None (cannot be deterministically computed for an ambiguous clause).",
         ],
-        explanation=f"{amb.section} excludes Pre-Existing Conditions 'as defined under applicable regulations' without specifying the regulatory authority, lookback period, or statutory duration in the policy text. Automated determination is blocked and human review is required.",
+        explanation=(
+            f"{amb.section} contains ambiguous or undefined terms ({amb.issue}). "
+            "Automated adjudication is suspended pending human adjuster interpretation."
+        ),
         source=amb.source,
         estimated_impact=None,
     )
@@ -651,7 +850,6 @@ def evaluate(
     facts_by_name: Dict[str, ClaimFact] = {f.name: f for f in facts}
     findings: list[Finding] = []
 
-    # Map of rule types to their dedicated deterministic evaluator
     evaluators = {
         RuleType.REQUIRED_DOCUMENTS.value: _evaluate_required_documents,
         RuleType.WAITING_PERIOD.value: _evaluate_waiting_period,
@@ -665,20 +863,76 @@ def evaluate(
         if rule_ids is not None and rule.rule_id not in rule_ids:
             continue
 
+        # Check for unverified rule or mandatory human review flag
+        val_status = str(rule.validation_status).lower()
+        if val_status not in ("validated", "active"):
+            findings.append(
+                Finding(
+                    rule_id=rule.rule_id,
+                    status=FindingStatus.NEEDS_REVIEW,
+                    inputs_used={"validation_status": rule.validation_status},
+                    calculation_steps=[
+                        f"Checked rule validation status: '{rule.validation_status}'.",
+                        "Rule is unverified or deprecated; cannot be deterministically enforced.",
+                    ],
+                    explanation=f"Rule {rule.rule_id} is unverified (status: '{rule.validation_status}') and requires review before adjudication.",
+                    source=rule.source,
+                    estimated_impact=None,
+                )
+            )
+            continue
+
+        if rule.human_review_required:
+            findings.append(
+                Finding(
+                    rule_id=rule.rule_id,
+                    status=FindingStatus.NEEDS_REVIEW,
+                    inputs_used={"human_review_required": True},
+                    calculation_steps=["Rule specifies human_review_required = True."],
+                    explanation=f"Rule {rule.rule_id} requires mandatory human adjuster review.",
+                    source=rule.source,
+                    estimated_impact=None,
+                )
+            )
+            continue
+
+        # Check for conflicting facts relevant to this rule
+        conflict_msg = _check_conflicting_facts_for_rule(rule.rule_type, facts)
+        if conflict_msg:
+            findings.append(
+                Finding(
+                    rule_id=rule.rule_id,
+                    status=FindingStatus.NEEDS_REVIEW,
+                    inputs_used={f.name: f.value for f in facts},
+                    calculation_steps=[
+                        f"Inspected claim facts for rule '{rule.rule_id}'.",
+                        f"Contradiction detected: {conflict_msg}",
+                    ],
+                    explanation=f"Conflicting or contradictory claim facts prevent automated evaluation: {conflict_msg}",
+                    source=rule.source,
+                    estimated_impact=None,
+                )
+            )
+            continue
+
         evaluator = evaluators.get(rule.rule_type)
         if evaluator is not None:
             finding = evaluator(rule, facts_by_name)
             findings.append(finding)
 
-    # Evaluate ambiguities if requested or present in facts
+    # Evaluate documented ambiguities without hard-coded IDs
     ambiguities = getattr(rulebook, "ambiguities", [])
     for amb in ambiguities:
-        # Evaluate if explicitly requested, or if all rules requested and facts contain medical history
         is_requested = rule_ids is not None and amb.ambiguity_id in rule_ids
-        is_relevant_in_all = rule_ids is None and "patient_medical_history" in facts_by_name
+        is_relevant_in_all = rule_ids is None and any(
+            re.search(rf"\b{re.escape(t)}\b", f"{f.name} {f.value}".lower())
+            for f in facts
+            for t in re.findall(r"\w+", f"{amb.issue} {amb.description}".lower())
+            if len(t) > 3
+        )
 
         if is_requested or is_relevant_in_all:
-            finding = _evaluate_ambiguity(amb, facts_by_name)
+            finding = _evaluate_ambiguity(amb, facts_by_name, facts)
             findings.append(finding)
 
     return findings

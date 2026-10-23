@@ -65,7 +65,7 @@ class Rule(BaseModel):
     )
 
 
-class AmbiguityRef(BaseModel):
+class Ambiguity(BaseModel):
     """Reference to an identified policy ambiguity requiring external interpretation or review."""
     model_config = ConfigDict(extra="forbid")
 
@@ -76,13 +76,17 @@ class AmbiguityRef(BaseModel):
     source: SourceRef = Field(..., description="Source citation with page number and verbatim quote.")
 
 
+# Backward compatibility alias
+AmbiguityRef = Ambiguity
+
+
 class Rulebook(BaseModel):
     """Collection of rules governing an insurance policy."""
     model_config = ConfigDict(extra="forbid")
 
     policy_id: str = Field(..., min_length=1, description="Unique policy identifier.")
     rules: List[Rule] = Field(..., min_length=1, description="List of validated policy rules.")
-    ambiguities: List[AmbiguityRef] = Field(
+    ambiguities: List[Ambiguity] = Field(
         default_factory=list,
         description="List of identified ambiguous policy clauses requiring human review or external context."
     )
