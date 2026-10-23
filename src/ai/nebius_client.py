@@ -57,11 +57,32 @@ def parse_json_response(content: str | None) -> dict:
 
 
 def chat_json(client, model: str, system: str, user: str,
-              temperature: float = 0.2, max_tokens: int = 4096) -> dict:
-    response = client.chat.completions.create(
-        model=model,
-        messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
-    return parse_json_response(response.choices[0].message.content)
+              temperature: float = 0.2, max_tokens: int = 8192,
+              retry_max_tokens: int = 16384) -> dict:
+    """Call the model and parse its JSON answer.
+
+    Nemotron 3 models reason before answering. If the reasoning uses up the output
+    budget, the answer comes back empty with finish_reason "length"; in that case we
+    retry once with a larger budget before giving up with a clear error.
+    """
+    budget = max_tokens
+    while True:
+        response = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
+            temperature=temperature,
+            max_tokens=budget,
+        )
+        choice = response.choices[0]
+        content = choice.message.content
+        finish = getattr(choice, "finish_reason", None)
+
+        if content and content.strip():
+            return parse_json_response(content)
+        if finish == "length" and budget < retry_max_tokens:
+            budget = retry_max_tokens
+            continue
+        raise NebiusResponseError(
+            f"Model returned an empty response (finish_reason={finish!r}, max_tokens={budget}). "
+            "If finish_reason is 'length', the model ran out of output tokens while reasoning."
+        )

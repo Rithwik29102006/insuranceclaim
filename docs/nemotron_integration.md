@@ -42,7 +42,17 @@ Model IDs are configured in `.env` (`NEBIUS_MODEL_REASONING`, `NEBIUS_MODEL_FAST
 | Key values (30-day wait, ₹5,000/day room cap, ₹40,000/eye cataract limit, 7 non-payable items) | all correct |
 | Time for one compile call (Nemotron 3 Super) | about 11 s |
 
-Claim extractor on `data/sample_claims/`: _fill in after running `python scripts/run_claim_extractor.py`_.
+## Results on the sample claim (`data/sample_claims/`)
+
+| Measure | Result |
+|---|---|
+| Facts extracted (documents submitted, hospitalization details, room rent) | 3, all correct |
+| Citations verified against the right document and page | 3 / 3 |
+| Days since policy inception | 45, computed in code from the extracted dates |
+| Time for one extraction call (Nemotron 3 Nano) | about 15 s |
+
+The policy's non-payable item list is passed into the claim prompt (`non_payable_items=`), so Nano can
+match bill lines such as "Admission processing charges" against the policy exclusions.
 
 ## Try it
 

@@ -135,3 +135,41 @@ def test_missing_api_key_gives_clear_error(monkeypatch):
     with patch("src.ai.nebius_client.load_dotenv"):
         with pytest.raises(NebiusConfigError):
             get_client()
+
+class SequenceClient:
+    """Returns a different reply on each call: list of (content, finish_reason)."""
+
+    def __init__(self, replies):
+        self.replies = list(replies)
+        self.calls = []
+        self.chat = SimpleNamespace(completions=SimpleNamespace(create=self._create))
+
+    def _create(self, **kwargs):
+        self.calls.append(kwargs)
+        content, finish = self.replies.pop(0)
+        message = SimpleNamespace(content=content)
+        return SimpleNamespace(choices=[SimpleNamespace(message=message, finish_reason=finish)])
+
+
+def test_empty_reply_cut_off_by_length_is_retried_with_bigger_budget():
+    from src.ai.nebius_client import chat_json
+    client = SequenceClient([(None, "length"), ('{"ok": true}', "stop")])
+    assert chat_json(client, "m", "sys", "user") == {"ok": True}
+    assert len(client.calls) == 2
+    assert client.calls[1]["max_tokens"] > client.calls[0]["max_tokens"]
+
+
+def test_empty_reply_after_retry_gives_clear_error():
+    from src.ai.nebius_client import chat_json
+    client = SequenceClient([(None, "length"), ("", "length")])
+    with pytest.raises(NebiusResponseError, match="finish_reason='length'"):
+        chat_json(client, "m", "sys", "user")
+    assert len(client.calls) == 2
+
+
+def test_empty_reply_not_caused_by_length_is_not_retried():
+    from src.ai.nebius_client import chat_json
+    client = SequenceClient([(None, "stop")])
+    with pytest.raises(NebiusResponseError):
+        chat_json(client, "m", "sys", "user")
+    assert len(client.calls) == 1

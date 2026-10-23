@@ -19,14 +19,14 @@
       "value": {
         "policy_inception_date": "2026-01-01",
         "admission_date": "2026-02-15",
-        "cause": "illness",
+        "cause": "Illness",
         "diagnosis": "Acute viral gastroenteritis",
         "days_elapsed": 45
       },
       "source": {
         "document": "discharge_summary.pdf",
         "page": 1,
-        "quote": "CITY CARE HOSPITAL - DISCHARGE SUMMARY\nPatient: Synthetic Patient A\nDate of admission: 2026-02-15\nDate of discharge: 2026-02-19\nCause of hospitalization: Illness\nDiagnosis: Acute viral gastroenteritis\nTreatment: IV fluids, antiemetics, observation\nCondition at discharge: Stable"
+        "quote": "Patient: Synthetic Patient A\nDate of admission: 2026-02-15\nDate of discharge: 2026-02-19\nCause of hospitalization: Illness\nDiagnosis: Acute viral gastroenteritis\nTreatment: IV fluids, antiemetics, observation\nCondition at discharge: Stable"
       }
     },
     {
@@ -41,6 +41,24 @@
         "document": "hospital_bill.pdf",
         "page": 1,
         "quote": "Executive Suite Room Charges: 4 days @ INR 7500.00 per day = INR 30000.00."
+      }
+    },
+    {
+      "name": "non_payable_items_breakdown",
+      "value": [
+        {
+          "item": "admission_processing_charges",
+          "amount": 1200
+        },
+        {
+          "item": "luxury_patient_amenity_kits",
+          "amount": 1800
+        }
+      ],
+      "source": {
+        "document": "hospital_bill.pdf",
+        "page": 1,
+        "quote": "Admission processing charges: INR 1200.00\nLuxury patient amenity kit: INR 1800.00"
       }
     }
   ],
@@ -58,6 +76,12 @@
       "reason": "verified"
     },
     "room_rent_billing": {
+      "verified": true,
+      "cited_page": 1,
+      "found_on_page": 1,
+      "reason": "verified"
+    },
+    "non_payable_items_breakdown": {
       "verified": true,
       "cited_page": 1,
       "found_on_page": 1,

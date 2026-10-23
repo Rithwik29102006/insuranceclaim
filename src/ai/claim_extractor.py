@@ -65,6 +65,10 @@ FACT_SCHEMA = """Use exactly these fact names and value shapes:
 Omit a fact entirely if the documents do not mention it. Use null for any value that is not stated.
 Write amounts as plain numbers in INR without commas or currency symbols."""
 
+NON_PAYABLE_HINT = """The policy lists these items as non-payable: {items}.
+For non_payable_items_breakdown, include every billed line item that matches one of them (same meaning,
+even if worded differently), using the policy's name for "item" and the billed amount. Quote the bill lines."""
+
 USER_TEMPLATE = """Claim documents: {document_ids}
 
 Return JSON in exactly this shape:
@@ -75,7 +79,7 @@ Return JSON in exactly this shape:
 }}]}}
 
 {fact_schema}
-
+{non_payable_hint}
 Document text, page by page:
 {pages}"""
 
@@ -118,8 +122,14 @@ def extract_claim_facts(
     documents: List[DocumentExtraction],
     client=None,
     model: Optional[str] = None,
+    non_payable_items: Optional[List[str]] = None,
 ) -> ClaimExtractionResult:
-    """Ask Nemotron (fast model) for claim facts, validate them, and verify every citation."""
+    """Ask Nemotron (fast model) for claim facts, validate them, and verify every citation.
+
+    non_payable_items: item names from the policy's non-payable rule (e.g. a compiled
+    rule's parameters["excluded_items"]). Without it the model cannot know which bill
+    lines the policy excludes, so non_payable_items_breakdown is usually omitted.
+    """
     if not documents:
         raise ClaimExtractorError("No claim documents provided.")
 
@@ -130,6 +140,10 @@ def extract_claim_facts(
     user = USER_TEMPLATE.format(
         document_ids=", ".join(by_id),
         fact_schema=FACT_SCHEMA,
+        non_payable_hint=(
+            "\n" + NON_PAYABLE_HINT.format(items=", ".join(non_payable_items)) + "\n"
+            if non_payable_items else ""
+        ),
         pages=_format_documents(documents),
     )
     data = chat_json(client, model, SYSTEM_PROMPT, user)

@@ -153,3 +153,17 @@ def test_uses_fast_model_by_default(documents):
         result = extract_claim_facts(documents, client=fake)
     get_model.assert_called_once_with("fast")
     assert result.model == "nano-id"
+
+
+def test_non_payable_items_are_passed_to_prompt(documents):
+    client = FakeClient(json.dumps({"facts": GOOD_FACTS}))
+    extract_claim_facts(documents, client=client, model="m",
+                        non_payable_items=["admission_processing_charges", "gloves"])
+    prompt = client.calls[0]["messages"][1]["content"]
+    assert "non-payable: admission_processing_charges, gloves" in prompt
+
+
+def test_no_non_payable_hint_without_items(documents):
+    client = FakeClient(json.dumps({"facts": GOOD_FACTS}))
+    extract_claim_facts(documents, client=client, model="m")
+    assert "non-payable:" not in client.calls[0]["messages"][1]["content"]

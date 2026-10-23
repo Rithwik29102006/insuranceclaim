@@ -25,8 +25,15 @@ def main():
     documents = [load_document(p) for p in paths]
     print("Documents:", ", ".join(d.document_id for d in documents))
 
+    gold = json.loads((ROOT / "data" / "gold_rulebook.json").read_text(encoding="utf-8"))
+    non_payable = next(
+        (rule["parameters"].get("excluded_items", []) for rule in gold["rules"]
+         if rule["rule_type"] == "non_payable_items"),
+        [],
+    )
+
     start = time.time()
-    result = extract_claim_facts(documents)
+    result = extract_claim_facts(documents, non_payable_items=non_payable)
     seconds = time.time() - start
 
     print(f"Model: {result.model}   time: {seconds:.1f}s")
