@@ -1,0 +1,16 @@
+[
+  {
+    "name": "room_rent_billing",
+    "value": {
+      "room_type": "private_suite",
+      "daily_rate": 7500.0,
+      "days": 4,
+      "total_amount": 30000.0
+    },
+    "source": {
+      "document": "hospital_bill.pdf",
+      "page": 1,
+      "quote": "Executive Suite Room Charges: 4 days @ INR 7500.00 per day = INR 30000.00."
+    }
+  }
+]

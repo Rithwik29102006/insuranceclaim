@@ -1,0 +1,24 @@
+[
+  {
+    "rule_id": "RULE_NON_PAYABLE_ITEMS",
+    "status": "satisfied",
+    "inputs_used": {
+      "inspected_items": [
+        "{'item': 'sanitizing_gel', 'amount': 500.0}",
+        "{'item': 'latex_hand_wear', 'amount': 400.0}"
+      ]
+    },
+    "calculation_steps": [
+      "Inspected billed line items against Section 3.2 non-payable schedule.",
+      "No excluded non-payable items were identified.",
+      "Reported unmatched/allowed items: sanitizing_gel, latex_hand_wear."
+    ],
+    "explanation": "No excluded non-payable items were identified in the billed line items.",
+    "source": {
+      "document": "synthetic_policy.pdf",
+      "page": 3,
+      "quote": "Section 3.2 (Non-Payable Items Schedule): The following non-medical and administrative items are non-payable and strictly excluded from reimbursement: registration fees, admission processing charges, gloves, face masks, sanitizers, thermometer charges, and luxury patient amenity kits."
+    },
+    "estimated_impact": 0.0
+  }
+]

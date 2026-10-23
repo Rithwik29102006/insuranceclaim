@@ -1,0 +1,15 @@
+[
+  {
+    "name": "submitted_documents",
+    "value": [
+      "claim_form",
+      "hospital_bill",
+      "discharge_summary"
+    ],
+    "source": {
+      "document": "claim_form.pdf",
+      "page": 1,
+      "quote": "Enclosed documents: Claim Form (Form CF-101), Original Hospital Final Bill (Inv #9821), and Discharge Summary (IPD-4412)."
+    }
+  }
+]

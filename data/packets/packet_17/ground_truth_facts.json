@@ -1,0 +1,16 @@
+[
+  {
+    "name": "room_rent_billing",
+    "value": {
+      "room_type": "standard_private",
+      "daily_rate": 5000.0,
+      "days": 4,
+      "total_amount": 20000.0
+    },
+    "source": {
+      "document": "hospital_bill.pdf",
+      "page": 1,
+      "quote": "Room Rent (Standard Private): 4 days @ INR 5000.00/day = Total INR 20000.00."
+    }
+  }
+]

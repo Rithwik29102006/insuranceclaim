@@ -1,0 +1,14 @@
+[
+  {
+    "name": "submitted_documents",
+    "value": [
+      "hospital_bill",
+      "discharge_summary"
+    ],
+    "source": {
+      "document": "claim_form.pdf",
+      "page": 1,
+      "quote": "NOTICE: Official Claim Form CF-101 was not enclosed in the submission docket by claimant Sanjay Mishra."
+    }
+  }
+]

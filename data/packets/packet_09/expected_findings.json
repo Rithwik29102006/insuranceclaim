@@ -1,0 +1,24 @@
+[
+  {
+    "rule_id": "RULE_WAITING_PERIOD",
+    "status": "satisfied",
+    "inputs_used": {
+      "policy_inception_date": "2026-01-01",
+      "admission_date": "2026-01-10",
+      "days_elapsed": 10,
+      "cause": "accidental_injury",
+      "diagnosis": "tibial fracture due to road traffic accident"
+    },
+    "calculation_steps": [
+      "Identified hospitalization cause: accidental injury.",
+      "Applied policy exception: accidental injuries are exempt from initial waiting period."
+    ],
+    "explanation": "Hospitalization was caused by accidental injury, which is explicitly exempt from the 30-day initial waiting period under Section 2.1.",
+    "source": {
+      "document": "synthetic_policy.pdf",
+      "page": 2,
+      "quote": "Section 2.1 (Initial Waiting Period): A mandatory waiting period of 30 days shall apply from the policy inception date. Any hospitalization or medical expenses incurred for treatment of illness during the first 30 days of coverage are strictly excluded from reimbursement, except where hospitalization is necessitated solely by an accidental injury sustained after the policy inception date."
+    },
+    "estimated_impact": 0.0
+  }
+]

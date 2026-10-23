@@ -1,0 +1,21 @@
+[
+  {
+    "rule_id": "AMB_PRE_EXISTING_CONDITIONS",
+    "status": "needs_review",
+    "inputs_used": {
+      "ambiguity_id": "AMB_PRE_EXISTING_CONDITIONS",
+      "section": "Section 4.1"
+    },
+    "calculation_steps": [
+      "Identified unresolved policy ambiguity: Undefined regulatory reference for pre-existing conditions.",
+      "Ambiguous policy clause requires manual human claims adjuster review."
+    ],
+    "explanation": "Policy ambiguity in Section 4.1 (Undefined regulatory reference for pre-existing conditions) cannot be resolved deterministically.",
+    "source": {
+      "document": "synthetic_policy.pdf",
+      "page": 4,
+      "quote": "Section 4.1 (Pre-Existing Conditions Exclusion): Any medical condition, ailment, or injury that constitutes a Pre-Existing Condition, as defined under applicable regulations, shall be excluded from coverage until the expiration of the statutory waiting period. Claims arising from or attributable to Pre-Existing Conditions shall not be indemnified."
+    },
+    "estimated_impact": null
+  }
+]

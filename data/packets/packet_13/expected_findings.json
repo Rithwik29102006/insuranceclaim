@@ -1,0 +1,25 @@
+[
+  {
+    "rule_id": "RULE_REQ_DOCS",
+    "status": "violated",
+    "inputs_used": {
+      "submitted_documents": [
+        "hospital_bill",
+        "discharge_summary"
+      ]
+    },
+    "calculation_steps": [
+      "Identified mandatory document list: claim_form, hospital_bill, discharge_summary.",
+      "Found 2 documents present.",
+      "Missing required document: claim_form.",
+      "In accordance with Section 1.1, missing mandatory documents render the claim incomplete and inadmissible."
+    ],
+    "explanation": "The mandatory claim_form is missing from the claim submission.",
+    "source": {
+      "document": "synthetic_policy.pdf",
+      "page": 1,
+      "quote": "Section 1.1 (Mandatory Claim Documents): Every reimbursement claim submitted under this policy must include all three of the following documents: (1) a completed and signed Claim Form, (2) an itemized original Hospital Bill with receipt, and (3) the official Hospital Discharge Summary. If any of these three required documents is missing, the claim shall be considered incomplete and cannot be processed for reimbursement."
+    },
+    "estimated_impact": null
+  }
+]

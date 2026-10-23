@@ -1,0 +1,15 @@
+[
+  {
+    "name": "room_rent_billing",
+    "value": {
+      "room_type": "deluxe_room",
+      "daily_rate": 7000.0,
+      "days": null
+    },
+    "source": {
+      "document": "hospital_bill.pdf",
+      "page": 1,
+      "quote": "Interim Bill: Deluxe Room billed @ INR 7000.00/day. Total days pending final discharge calculation."
+    }
+  }
+]

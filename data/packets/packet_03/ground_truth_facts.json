@@ -1,0 +1,17 @@
+[
+  {
+    "name": "hospitalization_details",
+    "value": {
+      "policy_inception_date": "2026-01-01",
+      "admission_date": "2026-02-15",
+      "days_elapsed": 45,
+      "cause": "illness",
+      "diagnosis": "acute viral gastroenteritis"
+    },
+    "source": {
+      "document": "discharge_summary.pdf",
+      "page": 1,
+      "quote": "Patient admitted on 15-Feb-2026 for acute viral gastroenteritis with moderate dehydration. Discharged on 18-Feb-2026."
+    }
+  }
+]

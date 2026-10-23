@@ -1,0 +1,29 @@
+[
+  {
+    "rule_id": "RULE_NON_PAYABLE_ITEMS",
+    "status": "violated",
+    "inputs_used": {
+      "items_detected": [
+        "GLOVES!",
+        "Face-Masks.",
+        "Admission - Processing Charges"
+      ],
+      "amounts": [
+        800.0,
+        600.0,
+        1500.0
+      ]
+    },
+    "calculation_steps": [
+      "Identified invoiced line items matching Section 3.2 non-payable schedule: GLOVES!, Face-Masks., Admission - Processing Charges.",
+      "Summed non-payable amounts: INR 800 + INR 600 + INR 1500 = INR 2900.00 non-payable deduction."
+    ],
+    "explanation": "Invoiced expenses include GLOVES!, Face-Masks., Admission - Processing Charges, which are explicitly non-payable under Section 3.2.",
+    "source": {
+      "document": "synthetic_policy.pdf",
+      "page": 3,
+      "quote": "Section 3.2 (Non-Payable Items Schedule): The following non-medical and administrative items are non-payable and strictly excluded from reimbursement: registration fees, admission processing charges, gloves, face masks, sanitizers, thermometer charges, and luxury patient amenity kits."
+    },
+    "estimated_impact": 2900.0
+  }
+]

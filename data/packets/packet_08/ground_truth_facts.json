@@ -1,0 +1,20 @@
+[
+  {
+    "name": "non_payable_items_breakdown",
+    "value": [
+      {
+        "item": "admission_processing_charges",
+        "amount": 1200.0
+      },
+      {
+        "item": "luxury_patient_amenity_kits",
+        "amount": 1800.0
+      }
+    ],
+    "source": {
+      "document": "hospital_bill.pdf",
+      "page": 1,
+      "quote": "Non-medical sundries: Admission processing charges INR 1200.00, Luxury patient amenity kits INR 1800.00."
+    }
+  }
+]
