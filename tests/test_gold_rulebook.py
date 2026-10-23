@@ -82,6 +82,11 @@ def test_synthetic_pdf_exists_and_parseable(extracted_policy: DocumentExtraction
 def test_gold_rulebook_schema_validation(loaded_rulebook: Rulebook):
     assert loaded_rulebook.policy_id == "POL-AURA-2026-001"
     assert len(loaded_rulebook.rules) == 5
+    assert len(loaded_rulebook.ambiguities) == 1
+    amb = loaded_rulebook.ambiguities[0]
+    assert amb.ambiguity_id == "AMB_PRE_EXISTING_CONDITIONS"
+    assert amb.section == "Section 4.1"
+    assert amb.source.page == 4
 
 
 # -----------------------------------------------------------------------------
@@ -119,6 +124,7 @@ def test_quotations_appear_verbatim_on_referenced_pages(
     assert min(page_text_map.keys()) == 1
     assert max(page_text_map.keys()) == extracted_policy.total_pages
 
+    # Check executable rules
     for rule in loaded_rulebook.rules:
         target_page = rule.source.page
         assert target_page in page_text_map, (
@@ -134,6 +140,20 @@ def test_quotations_appear_verbatim_on_referenced_pages(
             f"Quotation for rule {rule.rule_id} does not appear verbatim on Page {target_page}.\n"
             f"Quote: {norm_quote}\n"
             f"Extracted Page Text: {norm_page}"
+        )
+
+    # Check policy ambiguities (e.g. Section 4.1 on Page 4)
+    for amb in loaded_rulebook.ambiguities:
+        target_page = amb.source.page
+        assert target_page in page_text_map, (
+            f"Ambiguity {amb.ambiguity_id} references page {target_page}, "
+            f"which does not exist in extracted PDF"
+        )
+        page_text = page_text_map[target_page]
+        norm_page = normalize_whitespace(page_text)
+        norm_quote = normalize_whitespace(amb.source.quote)
+        assert norm_quote in norm_page, (
+            f"Quotation for ambiguity {amb.ambiguity_id} does not appear verbatim on Page {target_page}."
         )
 
 
@@ -158,7 +178,9 @@ def test_claim_scenarios_load_and_validate(loaded_scenarios: list[ClaimScenario]
 def test_scenarios_reference_valid_rule_ids(
     loaded_scenarios: list[ClaimScenario], loaded_rulebook: Rulebook
 ):
-    valid_rule_ids = {r.rule_id for r in loaded_rulebook.rules}
+    valid_rule_ids = {r.rule_id for r in loaded_rulebook.rules} | {
+        a.ambiguity_id for a in loaded_rulebook.ambiguities
+    }
 
     for sc in loaded_scenarios:
         for rid in sc.applicable_rule_ids:
@@ -233,3 +255,48 @@ def test_financial_impacts_justified_and_grounded(loaded_scenarios: list[ClaimSc
         # When financial impact is asserted, it must be non-negative
         if sc.expected_financial_impact is not None:
             assert sc.expected_financial_impact >= 0.0
+
+
+# -----------------------------------------------------------------------------
+# Test 12: Room-rent rule parameters include cap, formula basis, affected categories
+# -----------------------------------------------------------------------------
+def test_room_rent_rule_parameters(loaded_rulebook: Rulebook):
+    room_rules = [r for r in loaded_rulebook.rules if r.rule_type == RuleType.ROOM_RENT_CAP.value]
+    assert len(room_rules) == 1
+    rule = room_rules[0]
+    assert rule.parameters.get("cap") == 5000.0
+    assert rule.parameters.get("formula_basis") == "5000 / actual_daily_rate"
+    affected = rule.parameters.get("affected_categories", [])
+    assert "professional_fees" in affected
+    assert "operation_theatre_charges" in affected
+
+
+# -----------------------------------------------------------------------------
+# Test 13: Scenario 11 verifies proportional room-rent deduction step by step
+# -----------------------------------------------------------------------------
+def test_scenario_11_proportional_deduction(loaded_scenarios: list[ClaimScenario]):
+    sc11 = next((s for s in loaded_scenarios if s.scenario_id == "SCENARIO_11_ROOM_RENT_PROPORTIONAL_DEDUCTION"), None)
+    assert sc11 is not None, "Scenario 11 not found in test cases"
+    assert sc11.expected_financial_impact == 27500.0
+    finding = sc11.expected_findings[0]
+    assert finding.status == FindingStatus.VIOLATED.value
+    assert finding.estimated_impact == 27500.0
+    assert len(finding.calculation_steps) >= 4
+    # Check that ratio and calculation steps are explicitly detailed
+    steps_joined = " ".join(finding.calculation_steps)
+    assert "5000 / 10000 = 0.50" in steps_joined
+    assert "27500.00" in steps_joined
+
+
+# -----------------------------------------------------------------------------
+# Test 14: Scenario 12 verifies Section 4.1 ambiguity requires review
+# -----------------------------------------------------------------------------
+def test_scenario_12_ambiguity_needs_review(loaded_scenarios: list[ClaimScenario]):
+    sc12 = next((s for s in loaded_scenarios if s.scenario_id == "SCENARIO_12_PRE_EXISTING_CONDITION_AMBIGUITY"), None)
+    assert sc12 is not None, "Scenario 12 not found in test cases"
+    assert sc12.human_review_required is True
+    assert sc12.missing_information_required is True
+    assert sc12.expected_financial_impact is None
+    finding = sc12.expected_findings[0]
+    assert finding.status == FindingStatus.NEEDS_REVIEW.value
+    assert finding.rule_id == "AMB_PRE_EXISTING_CONDITIONS"

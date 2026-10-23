@@ -1,6 +1,6 @@
 {
   "scenario_id": "SCENARIO_06_ROOM_RENT_ABOVE_LIMIT",
-  "description": "Patient occupied a private suite billed at INR 7500 per day for 4 days. The daily rate exceeds the INR 5000 limit, resulting in a deterministic excess room rent deduction of INR 10000.",
+  "description": "Patient occupied a private suite billed at INR 7500 per day for 4 days with no associated surgical fees. The daily rate exceeds the INR 5000 limit, resulting in a deterministic excess room rent deduction of INR 10000.",
   "claim_facts": [
     {
       "name": "room_rent_billing",
@@ -34,13 +34,14 @@
         "Policy daily cap: INR 5000.",
         "Daily excess: INR 7500 - INR 5000 = INR 2500 per day.",
         "Total stay duration: 4 days.",
-        "Total excess room rent deduction: 4 days * INR 2500/day = INR 10000.00."
+        "Total excess room rent deduction: 4 days * INR 2500/day = INR 10000.00.",
+        "No professional fees or OT charges were billed in this claim; proportional deduction does not apply to zero fees."
       ],
-      "explanation": "Daily room rent of INR 7500 exceeds the policy cap of INR 5000 per day by INR 2500 per day across 4 days.",
+      "explanation": "Daily room rent of INR 7500 exceeds the policy cap of INR 5000 per day by INR 2500 per day across 4 days, resulting in an excess room rent deduction of INR 10000.",
       "source": {
         "document": "synthetic_policy.pdf",
         "page": 2,
-        "quote": "Section 2.2 (Room Rent Daily Limit): The maximum eligible room and boarding expense covered by the insurer is INR 5000 per day of hospitalization. Any room rent charges incurred in excess of INR 5000 per day are non-payable by the insurer and shall be borne entirely by the insured person."
+        "quote": "Section 2.2 (Room Rent Daily Limit and Proportional Deduction): The maximum eligible room and boarding expense covered by the insurer is INR 5000 per day of hospitalization. Any room rent charges incurred in excess of INR 5000 per day are non-payable by the insurer and shall be borne entirely by the insured person. If the actual daily room rent exceeds INR 5000, then professional fees and operation theatre charges are payable only in the ratio 5000 / actual daily rate, with the remaining balance of such charges being non-payable."
       },
       "estimated_impact": 10000.0
     }

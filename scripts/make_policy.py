@@ -270,19 +270,23 @@ def build_synthetic_policy_pdf(output_path: str | Path) -> Path:
     )
     story.append(Spacer(1, 10))
 
-    # Operative Clause 3: Room Rent Cap
+    # Operative Clause 3: Room Rent Cap and Proportional Deduction
     clause_3_text = (
-        "Section 2.2 (Room Rent Daily Limit): The maximum eligible room and boarding expense covered by "
-        "the insurer is INR 5000 per day of hospitalization. Any room rent charges incurred in excess of "
-        "INR 5000 per day are non-payable by the insurer and shall be borne entirely by the insured person."
+        "Section 2.2 (Room Rent Daily Limit and Proportional Deduction): The maximum eligible room and "
+        "boarding expense covered by the insurer is INR 5000 per day of hospitalization. Any room rent "
+        "charges incurred in excess of INR 5000 per day are non-payable by the insurer and shall be borne "
+        "entirely by the insured person. If the actual daily room rent exceeds INR 5000, then professional "
+        "fees and operation theatre charges are payable only in the ratio 5000 / actual daily rate, with "
+        "the remaining balance of such charges being non-payable."
     )
     story.append(Paragraph(clause_3_text, clause_style))
 
     story.append(
         Paragraph(
-            "For avoidance of doubt, the policy does not apply a proportional deduction penalty to associated "
-            "medical fees when a patient selects a room exceeding the daily limit; only the specific excess room "
-            "rent charge above INR 5000 per day is deducted as a non-payable expense.",
+            "Proportional Deduction Application: The proportional deduction applies strictly to associated "
+            "professional fees (such as surgeon, anesthetist, and medical practitioner fees) and operation "
+            "theatre charges. Other hospital charges such as medicines, diagnostic tests, and consumables "
+            "are not subject to proportional deduction.",
             body_style,
         )
     )
@@ -342,45 +346,55 @@ def build_synthetic_policy_pdf(output_path: str | Path) -> Path:
     story.append(PageBreak())
 
     # =========================================================================
-    # PAGE 4: General Terms & Fictional Verification Notes
+    # PAGE 4: General Policy Exclusions and Administrative Provisions
     # =========================================================================
     story.append(Spacer(1, 14))
-    story.append(Paragraph("Section 4: General Policy Provisions and Claim Adjudication Notes", h1_style))
-    story.append(
-        Paragraph(
-            "4.1 Claim Submission Timeline: Written notice of claim must be submitted within 30 days "
-            "from the discharge date. Delays supported by documented medical incapacitation will be reviewed "
-            "on an exceptional basis.",
-            body_style,
-        )
+    story.append(Paragraph("Section 4: General Policy Exclusions and Administrative Provisions", h1_style))
+
+    # Section 4.1: Pre-Existing Conditions Exclusion (Ambiguity)
+    section_4_1_text = (
+        "Section 4.1 (Pre-Existing Conditions Exclusion): Any medical condition, ailment, or injury that "
+        "constitutes a Pre-Existing Condition, as defined under applicable regulations, shall be excluded "
+        "from coverage until the expiration of the statutory waiting period. Claims arising from or "
+        "attributable to Pre-Existing Conditions shall not be indemnified."
     )
-    story.append(
-        Paragraph(
-            "4.2 Settlement Protocol: Claims satisfying all documentary, waiting period, and eligibility "
-            "criteria shall be computed based on allowable hospital expenses minus non-payable items, "
-            "applicable sub-limits, and room rent excess.",
-            body_style,
-        )
+    story.append(Paragraph(section_4_1_text, clause_style))
+
+    # Section 4.2: General Definitions (Harmless filler, no limits or amounts)
+    section_4_2_text = (
+        "Section 4.2 (General Definitions): 'Hospital' means any institution established for in-patient care "
+        "and medical treatment of sickness and injuries, possessing qualified medical staff and nursing services. "
+        "'Day Care Treatment' refers to medical treatment or surgical procedures undertaken under general or "
+        "local anesthesia in a hospital where the patient is discharged within the same calendar day."
     )
-    story.append(
-        Paragraph(
-            "4.3 Verification Declarations for ClaimCheck 2.0: This document serves as the canonical ground "
-            "truth policy for evaluating local PDF extraction, automated rule compilation, and deterministic "
-            "claim scenario adjudication. Each of the five operative clauses on Pages 1, 2, and 3 is designed "
-            "with unambiguous numerical limits and clear conditions.",
-            body_style,
-        )
+    story.append(Paragraph(section_4_2_text, body_style))
+
+    # Section 4.3: Claim Procedure (Harmless filler, no limits or amounts)
+    section_4_3_text = (
+        "Section 4.3 (Claim Submission Procedure): Notice of claim and complete documentary submissions "
+        "must be provided to the insurer following hospital discharge. The insurer may seek clarification "
+        "or additional clinical records where appropriate to verify adherence to policy terms."
     )
-    story.append(Spacer(1, 14))
+    story.append(Paragraph(section_4_3_text, body_style))
+
+    # Section 4.4: Ground truth verification declarations (Harmless filler)
+    section_4_4_text = (
+        "Section 4.4 (Verification Declarations for ClaimCheck 2.0): This synthetic contract serves as the "
+        "canonical reference document for local automated extraction, deterministic rule compilation, and "
+        "ground-truth scenario benchmarking. Documented clauses contain explicit formulas and verifiable terms."
+    )
+    story.append(Paragraph(section_4_4_text, body_style))
+    story.append(Spacer(1, 8))
 
     # Summary table of operative rules on Page 4 for reference
     ref_table_data = [
-        ["Rule Type", "Target Section", "Governing Limit / Requirement", "Policy Page"],
+        ["Rule / Section", "Target Section", "Governing Limit / Requirement", "Policy Page"],
         ["Required Documents", "Section 1.1", "Claim Form, Hospital Bill, Discharge Summary", "Page 1"],
         ["Initial Waiting Period", "Section 2.1", "30 Days from Inception (Accident Exempt)", "Page 2"],
-        ["Room Rent Cap", "Section 2.2", "INR 5000 per day (Excess Non-Payable)", "Page 2"],
+        ["Room Rent & Proportional", "Section 2.2", "INR 5000/day; Proportional 5000/rate on Fees & OT", "Page 2"],
         ["Surgical Sub-Limit", "Section 3.1", "INR 40000 per eye for Cataract Surgery", "Page 3"],
         ["Non-Payable Items", "Section 3.2", "7 specified administrative & consumable items", "Page 3"],
+        ["Pre-Existing Conditions", "Section 4.1", "Excluded as defined under applicable regulations", "Page 4"],
     ]
     t2 = Table(ref_table_data, colWidths=[120, 90, 220, 74])
     t2.setStyle(
@@ -394,13 +408,13 @@ def build_synthetic_policy_pdf(output_path: str | Path) -> Path:
                 ("BACKGROUND", (0, 1), (-1, -1), colors.HexColor("#F8FAFC")),
                 ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
                 ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                ("TOPPADDING", (0, 0), (-1, -1), 3),
             ]
         )
     )
     story.append(t2)
-    story.append(Spacer(1, 16))
+    story.append(Spacer(1, 10))
 
     story.append(
         Paragraph(

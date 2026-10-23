@@ -38,7 +38,7 @@
       "source": {
         "document": "synthetic_policy.pdf",
         "page": 2,
-        "quote": "Section 2.2 (Room Rent Daily Limit): The maximum eligible room and boarding expense covered by the insurer is INR 5000 per day of hospitalization. Any room rent charges incurred in excess of INR 5000 per day are non-payable by the insurer and shall be borne entirely by the insured person."
+        "quote": "Section 2.2 (Room Rent Daily Limit and Proportional Deduction): The maximum eligible room and boarding expense covered by the insurer is INR 5000 per day of hospitalization. Any room rent charges incurred in excess of INR 5000 per day are non-payable by the insurer and shall be borne entirely by the insured person. If the actual daily room rent exceeds INR 5000, then professional fees and operation theatre charges are payable only in the ratio 5000 / actual daily rate, with the remaining balance of such charges being non-payable."
       },
       "estimated_impact": 0.0
     }
