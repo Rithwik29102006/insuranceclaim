@@ -1,0 +1,9 @@
+streamlit
+pymupdf
+pydantic
+python-dotenv
+pytest
+reportlab
+pillow
+pytesseract
+openai

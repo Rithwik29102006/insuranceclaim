@@ -1,0 +1,52 @@
+{
+  "scenario_id": "SCENARIO_07_SUBLIMIT_EXCEEDED",
+  "description": "Claimant underwent unilateral cataract surgery on the left eye with total billed surgical expenses of INR 55000, exceeding the INR 40000 sub-limit by INR 15000.",
+  "claim_facts": [
+    {
+      "name": "surgical_expenses",
+      "value": {
+        "procedure": "cataract_surgery",
+        "eye": "left",
+        "surgeon_fee": 30000.0,
+        "ot_charges": 10000.0,
+        "lens_cost": 15000.0,
+        "total_cataract_billed": 55000.0
+      },
+      "source": {
+        "document": "surgical_invoice.pdf",
+        "page": 1,
+        "quote": "Procedure: Phacoemulsification with Foldable IOL (Left Eye). Surgeon Fee: INR 30000, OT: INR 10000, Lens: INR 15000. Total Cataract Charges: INR 55000.00."
+      }
+    }
+  ],
+  "applicable_rule_ids": [
+    "RULE_CATARACT_SUBLIMIT"
+  ],
+  "expected_findings": [
+    {
+      "rule_id": "RULE_CATARACT_SUBLIMIT",
+      "status": "violated",
+      "inputs_used": {
+        "procedure": "cataract_surgery",
+        "eyes_count": 1,
+        "total_billed": 55000.0,
+        "sublimit_per_eye": 40000.0
+      },
+      "calculation_steps": [
+        "Billed amount for left eye cataract surgery: INR 55000.",
+        "Policy sub-limit per eye: INR 40000.",
+        "Excess over sub-limit: INR 55000 - INR 40000 = INR 15000.00 non-payable."
+      ],
+      "explanation": "Billed cataract surgery expenses of INR 55000 exceed the policy sub-limit of INR 40000 per eye by INR 15000.",
+      "source": {
+        "document": "synthetic_policy.pdf",
+        "page": 3,
+        "quote": "Section 3.1 (Sub-Limit on Cataract Surgery): Reimbursement for cataract surgery shall be subject to a strict monetary sub-limit of INR 40000 per eye, inclusive of surgeon fees, operating room charges, and intraocular lens costs. Any expenses incurred for cataract surgery in excess of INR 40000 per eye are non-payable by the insurer."
+      },
+      "estimated_impact": 15000.0
+    }
+  ],
+  "missing_information_required": false,
+  "human_review_required": false,
+  "expected_financial_impact": 15000.0
+}

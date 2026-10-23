@@ -1,0 +1,49 @@
+{
+  "scenario_id": "SCENARIO_10_ROOM_RENT_UNKNOWN_DURATION",
+  "description": "Claim document indicates daily room rent of INR 7000 (exceeding INR 5000 limit) but the number of days stayed is not stated. Impact cannot be computed without known duration.",
+  "claim_facts": [
+    {
+      "name": "room_rent_billing",
+      "value": {
+        "room_type": "deluxe_room",
+        "daily_rate": 7000.0,
+        "days": null
+      },
+      "source": {
+        "document": "interim_bill.pdf",
+        "page": 1,
+        "quote": "Interim Bill: Deluxe Room billed @ INR 7000.00/day. Total days pending final discharge calculation."
+      }
+    }
+  ],
+  "applicable_rule_ids": [
+    "RULE_ROOM_RENT_CAP"
+  ],
+  "expected_findings": [
+    {
+      "rule_id": "RULE_ROOM_RENT_CAP",
+      "status": "needs_review",
+      "inputs_used": {
+        "daily_rate_billed": 7000.0,
+        "days": null,
+        "daily_cap": 5000.0
+      },
+      "calculation_steps": [
+        "Identified billed daily room rent: INR 7000.",
+        "Daily rate exceeds cap of INR 5000.",
+        "Attempted deduction calculation: duration in days is unknown.",
+        "Financial impact cannot be computed without total days of stay."
+      ],
+      "explanation": "Daily room rent of INR 7000 exceeds INR 5000 daily limit, but total stay duration is missing from submitted records. Financial impact cannot be determined without knowing days of hospitalization.",
+      "source": {
+        "document": "synthetic_policy.pdf",
+        "page": 2,
+        "quote": "Section 2.2 (Room Rent Daily Limit): The maximum eligible room and boarding expense covered by the insurer is INR 5000 per day of hospitalization. Any room rent charges incurred in excess of INR 5000 per day are non-payable by the insurer and shall be borne entirely by the insured person."
+      },
+      "estimated_impact": null
+    }
+  ],
+  "missing_information_required": true,
+  "human_review_required": true,
+  "expected_financial_impact": null
+}

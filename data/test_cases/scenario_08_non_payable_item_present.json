@@ -1,0 +1,57 @@
+{
+  "scenario_id": "SCENARIO_08_NON_PAYABLE_ITEM_PRESENT",
+  "description": "Hospital bill contains explicitly excluded non-payable items: admission processing charges (INR 1200) and luxury patient amenity kits (INR 1800), totaling INR 3000.",
+  "claim_facts": [
+    {
+      "name": "non_payable_items_breakdown",
+      "value": [
+        {
+          "item": "admission_processing_charges",
+          "amount": 1200.0
+        },
+        {
+          "item": "luxury_patient_amenity_kits",
+          "amount": 1800.0
+        }
+      ],
+      "source": {
+        "document": "hospital_breakdown.pdf",
+        "page": 1,
+        "quote": "Non-medical sundries: Admission processing charges INR 1200.00, Luxury patient amenity kits INR 1800.00."
+      }
+    }
+  ],
+  "applicable_rule_ids": [
+    "RULE_NON_PAYABLE_ITEMS"
+  ],
+  "expected_findings": [
+    {
+      "rule_id": "RULE_NON_PAYABLE_ITEMS",
+      "status": "violated",
+      "inputs_used": {
+        "items_detected": [
+          "admission_processing_charges",
+          "luxury_patient_amenity_kits"
+        ],
+        "amounts": [
+          1200.0,
+          1800.0
+        ]
+      },
+      "calculation_steps": [
+        "Identified invoiced line items matching Section 3.2 non-payable schedule: admission processing charges and luxury patient amenity kits.",
+        "Summed non-payable amounts: INR 1200 + INR 1800 = INR 3000.00 non-payable deduction."
+      ],
+      "explanation": "Invoiced expenses include admission processing charges (INR 1200) and luxury patient amenity kits (INR 1800), which are explicitly non-payable under Section 3.2.",
+      "source": {
+        "document": "synthetic_policy.pdf",
+        "page": 3,
+        "quote": "Section 3.2 (Non-Payable Items Schedule): The following non-medical and administrative items are non-payable and strictly excluded from reimbursement: registration fees, admission processing charges, gloves, face masks, sanitizers, thermometer charges, and luxury patient amenity kits."
+      },
+      "estimated_impact": 3000.0
+    }
+  ],
+  "missing_information_required": false,
+  "human_review_required": false,
+  "expected_financial_impact": 3000.0
+}

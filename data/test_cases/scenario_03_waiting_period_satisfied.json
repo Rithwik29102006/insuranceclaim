@@ -1,0 +1,51 @@
+{
+  "scenario_id": "SCENARIO_03_WAITING_PERIOD_SATISFIED",
+  "description": "Hospitalization for viral gastroenteritis occurred on day 45 following policy inception, safely after the 30-day initial waiting period.",
+  "claim_facts": [
+    {
+      "name": "hospitalization_details",
+      "value": {
+        "policy_inception_date": "2026-01-01",
+        "admission_date": "2026-02-15",
+        "days_elapsed": 45,
+        "cause": "illness",
+        "diagnosis": "acute viral gastroenteritis"
+      },
+      "source": {
+        "document": "discharge_summary.pdf",
+        "page": 1,
+        "quote": "Patient admitted on 15-Feb-2026 for acute viral gastroenteritis with moderate dehydration. Discharged on 18-Feb-2026."
+      }
+    }
+  ],
+  "applicable_rule_ids": [
+    "RULE_WAITING_PERIOD"
+  ],
+  "expected_findings": [
+    {
+      "rule_id": "RULE_WAITING_PERIOD",
+      "status": "satisfied",
+      "inputs_used": {
+        "policy_inception_date": "2026-01-01",
+        "admission_date": "2026-02-15",
+        "days_elapsed": 45,
+        "cause": "illness"
+      },
+      "calculation_steps": [
+        "Computed days elapsed between policy inception (2026-01-01) and hospital admission (2026-02-15): 45 days.",
+        "Compared 45 days against mandatory 30-day waiting period threshold.",
+        "45 >= 30: Waiting period is fully satisfied."
+      ],
+      "explanation": "The admission occurred 45 days post-inception, satisfying the 30-day initial waiting period.",
+      "source": {
+        "document": "synthetic_policy.pdf",
+        "page": 2,
+        "quote": "Section 2.1 (Initial Waiting Period): A mandatory waiting period of 30 days shall apply from the policy inception date. Any hospitalization or medical expenses incurred for treatment of illness during the first 30 days of coverage are strictly excluded from reimbursement, except where hospitalization is necessitated solely by an accidental injury sustained after the policy inception date."
+      },
+      "estimated_impact": 0.0
+    }
+  ],
+  "missing_information_required": false,
+  "human_review_required": false,
+  "expected_financial_impact": 0.0
+}

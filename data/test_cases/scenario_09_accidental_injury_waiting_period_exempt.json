@@ -1,0 +1,53 @@
+{
+  "scenario_id": "SCENARIO_09_ACCIDENT_WAITING_PERIOD_EXEMPT",
+  "description": "Emergency hospitalization on day 10 following a road traffic accident; exempt from the 30-day waiting period under the accidental injury exception.",
+  "claim_facts": [
+    {
+      "name": "hospitalization_details",
+      "value": {
+        "policy_inception_date": "2026-01-01",
+        "admission_date": "2026-01-10",
+        "days_elapsed": 10,
+        "cause": "accidental_injury",
+        "diagnosis": "tibial fracture due to road traffic accident"
+      },
+      "source": {
+        "document": "emergency_trauma_report.pdf",
+        "page": 1,
+        "quote": "Emergency Admission: 10-Jan-2026. Patient presented with compound tibial fracture following a vehicular road collision. Immediate surgical reduction required."
+      }
+    }
+  ],
+  "applicable_rule_ids": [
+    "RULE_WAITING_PERIOD"
+  ],
+  "expected_findings": [
+    {
+      "rule_id": "RULE_WAITING_PERIOD",
+      "status": "satisfied",
+      "inputs_used": {
+        "policy_inception_date": "2026-01-01",
+        "admission_date": "2026-01-10",
+        "days_elapsed": 10,
+        "cause": "accidental_injury"
+      },
+      "calculation_steps": [
+        "Computed days elapsed: 10 days.",
+        "Admission date is within 30 days of inception.",
+        "Evaluated policy exception: Section 2.1 exempts hospitalization necessitated solely by accidental injury sustained during policy period.",
+        "Admission cause verified as accidental injury; exception applies.",
+        "Rule status: satisfied under policy exception."
+      ],
+      "explanation": "Hospitalization occurred on day 10 due to an accidental injury, qualifying for the explicit policy exception to the 30-day waiting period.",
+      "source": {
+        "document": "synthetic_policy.pdf",
+        "page": 2,
+        "quote": "Section 2.1 (Initial Waiting Period): A mandatory waiting period of 30 days shall apply from the policy inception date. Any hospitalization or medical expenses incurred for treatment of illness during the first 30 days of coverage are strictly excluded from reimbursement, except where hospitalization is necessitated solely by an accidental injury sustained after the policy inception date."
+      },
+      "estimated_impact": 0.0
+    }
+  ],
+  "missing_information_required": false,
+  "human_review_required": false,
+  "expected_financial_impact": 0.0
+}
