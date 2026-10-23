@@ -1,0 +1,130 @@
+{
+  "policy_id": "POL-AURA-2026-001",
+  "model": "nvidia/nemotron-3-super-120b-a12b",
+  "rules": [
+    {
+      "rule_id": "RULE_REQUIRED_DOCS",
+      "rule_type": "required_documents",
+      "description": "Every reimbursement claim must include a completed and signed Claim Form, an itemized original Hospital Bill with receipt, and the official Hospital Discharge Summary.",
+      "parameters": {},
+      "exceptions": [],
+      "source": {
+        "document": "synthetic_policy.pdf",
+        "page": 1,
+        "quote": "Every reimbursement claim submitted under this policy must include all three of the following documents: (1) a completed and signed Claim Form, (2) an itemized original Hospital Bill with receipt, and (3) the official Hospital Discharge Summary."
+      },
+      "validation_status": "draft",
+      "human_review_required": false
+    },
+    {
+      "rule_id": "RULE_WAITING_PERIOD",
+      "rule_type": "waiting_period",
+      "description": "A mandatory waiting period of 30 days applies from the policy inception date, during which illness-related hospitalizations are excluded unless due to an accidental injury after inception.",
+      "parameters": {
+        "duration_days": 30
+      },
+      "exceptions": [
+        "hospitalization necessitated solely by an accidental injury sustained after the policy inception date"
+      ],
+      "source": {
+        "document": "synthetic_policy.pdf",
+        "page": 2,
+        "quote": "A mandatory waiting period of 30 days shall apply from the policy inception date. Any hospitalization or medical expenses incurred for treatment of illness during the first 30 days of coverage are strictly excluded from reimbursement, except where hospitalization is necessitated solely by an accidental injury sustained after the policy inception date."
+      },
+      "validation_status": "draft",
+      "human_review_required": false
+    },
+    {
+      "rule_id": "RULE_ROOM_RENT_CAP",
+      "rule_type": "room_rent_cap",
+      "description": "The insurer covers room and boarding expenses up to INR 5000 per day; any excess is non‑payable.",
+      "parameters": {
+        "daily_limit": 5000,
+        "currency": "INR"
+      },
+      "exceptions": [],
+      "source": {
+        "document": "synthetic_policy.pdf",
+        "page": 2,
+        "quote": "The maximum eligible room and boarding expense covered by the insurer is INR 5000 per day of hospitalization. Any room rent charges incurred in excess of INR 5000 per day are non-payable by the insurer and shall be borne entirely by the insured person."
+      },
+      "validation_status": "draft",
+      "human_review_required": false
+    },
+    {
+      "rule_id": "RULE_SUB_LIMIT_CATARACT",
+      "rule_type": "sub_limit",
+      "description": "Reimbursement for cataract surgery is limited to INR 40000 per eye, inclusive of surgeon fees, operating room charges, and intraocular lens costs.",
+      "parameters": {
+        "limit_amount": 40000,
+        "currency": "INR",
+        "per_eye": true
+      },
+      "exceptions": [],
+      "source": {
+        "document": "synthetic_policy.pdf",
+        "page": 3,
+        "quote": "Reimbursement for cataract surgery shall be subject to a strict monetary sub-limit of INR 40000 per eye, inclusive of surgeon fees, operating room charges, and intraocular lens costs. Any expenses incurred for cataract surgery in excess of INR 40000 per eye are non-payable by the insurer."
+      },
+      "validation_status": "draft",
+      "human_review_required": false
+    },
+    {
+      "rule_id": "RULE_NON_PAYABLE_ITEMS",
+      "rule_type": "non_payable_items",
+      "description": "Registration fees, admission processing charges, gloves, face masks, sanitizers, thermometer charges, and luxury patient amenity kits are non‑payable and excluded from reimbursement.",
+      "parameters": {
+        "items": [
+          "registration fees",
+          "admission processing charges",
+          "gloves",
+          "face masks",
+          "sanitizers",
+          "thermometer charges",
+          "luxury patient amenity kits"
+        ]
+      },
+      "exceptions": [],
+      "source": {
+        "document": "synthetic_policy.pdf",
+        "page": 3,
+        "quote": "The following non-medical and administrative items are non-payable and strictly excluded from reimbursement: registration fees, admission processing charges, gloves, face masks, sanitizers, thermometer charges, and luxury patient amenity kits."
+      },
+      "validation_status": "draft",
+      "human_review_required": false
+    }
+  ],
+  "citation_checks": {
+    "RULE_REQUIRED_DOCS": {
+      "verified": true,
+      "cited_page": 1,
+      "found_on_page": 1,
+      "reason": "verified"
+    },
+    "RULE_WAITING_PERIOD": {
+      "verified": true,
+      "cited_page": 2,
+      "found_on_page": 2,
+      "reason": "verified"
+    },
+    "RULE_ROOM_RENT_CAP": {
+      "verified": true,
+      "cited_page": 2,
+      "found_on_page": 2,
+      "reason": "verified"
+    },
+    "RULE_SUB_LIMIT_CATARACT": {
+      "verified": true,
+      "cited_page": 3,
+      "found_on_page": 3,
+      "reason": "verified"
+    },
+    "RULE_NON_PAYABLE_ITEMS": {
+      "verified": true,
+      "cited_page": 3,
+      "found_on_page": 3,
+      "reason": "verified"
+    }
+  },
+  "rejected": []
+}
