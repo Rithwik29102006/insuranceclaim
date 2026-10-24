@@ -84,20 +84,24 @@ def _check_conflicting_facts_for_rule(
                 if other.value != first_val:
                     return f"Duplicate fact '{name}' has conflicting values: {first_val} vs {other.value}"
 
-    # Check cross-fact amount conflicts (e.g. claim form total vs hospital bill total)
-    amounts = {}
+    # Check cross-document overall claim totals (e.g. claim form claimed amount vs hospital bill billed amount)
+    overall_totals = {}
     for f in all_facts:
         if isinstance(f.value, dict):
-            for k in ("total_amount", "total_billed", "claimed_amount", "billed_amount", "total_claimed"):
+            for k in ("claimed_amount", "billed_amount", "total_claimed", "total_billed"):
                 if k in f.value and f.value[k] is not None:
                     amt = _to_decimal(f.value[k])
                     if amt is not None:
-                        amounts[f"{f.name}.{k}"] = amt
+                        overall_totals[f"{f.name}.{k}"] = amt
+            if f.name.endswith("_summary") and "total_amount" in f.value and f.value["total_amount"] is not None:
+                amt = _to_decimal(f.value["total_amount"])
+                if amt is not None:
+                    overall_totals[f"{f.name}.total_amount"] = amt
 
-    if len(amounts) >= 2:
-        vals = list(amounts.values())
+    if len(overall_totals) >= 2:
+        vals = list(overall_totals.values())
         if any(v != vals[0] for v in vals[1:]):
-            diffs = ", ".join(f"{k}=INR {v}" for k, v in amounts.items())
+            diffs = ", ".join(f"{k}=INR {v}" for k, v in overall_totals.items())
             return f"Conflicting total amounts detected across claim documents: {diffs}"
 
     return None

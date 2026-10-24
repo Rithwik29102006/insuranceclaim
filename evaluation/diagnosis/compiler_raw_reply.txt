@@ -1,0 +1,10 @@
+ERROR: LIVE CALL BLOCKED - NEBIUS_API_KEY NOT CONFIGURED
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "c:\Users\RAM CHARAN YAMA\OneDrive\Attachments\Desktop\claimcheck\src\ai\policy_compiler.py", line 110, in compile_policy_rules
+    client = client or get_client()
+                       ^^^^^^^^^^^^
+  File "c:\Users\RAM CHARAN YAMA\OneDrive\Attachments\Desktop\claimcheck\src\ai\nebius_client.py", line 32, in get_client
+    raise NebiusConfigError("NEBIUS_API_KEY is not set. Add it to your .env file.")
+src.ai.nebius_client.NebiusConfigError: NEBIUS_API_KEY is not set. Add it to your .env file.

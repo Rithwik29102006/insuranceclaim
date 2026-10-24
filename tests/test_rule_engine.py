@@ -214,3 +214,62 @@ def test_bill_item_normalization_without_fuzzy_guessing(gold_rulebook: Rulebook)
     steps = " ".join(f.calculation_steps)
     assert "Sterile Surgical Gown Extra Large" in steps
     assert "Reported allowable/unmatched" in steps
+
+
+# -----------------------------------------------------------------------------
+# Test 7: Conflict check scoping - distinct subtotals are NOT a conflict
+# -----------------------------------------------------------------------------
+def test_distinct_subtotals_do_not_conflict(gold_rulebook: Rulebook):
+    """Different billing subtotals (room rent vs prof fees) must not trigger false conflict."""
+    facts = [
+        ClaimFact(
+            name="room_rent_billing",
+            value={"daily_rate": 5000.0, "days": 2, "total_amount": 10000.0},
+            source=SourceRef(document="hospital_bill.pdf", page=1, quote="Room rent charges"),
+        ),
+        ClaimFact(
+            name="professional_fees_billing",
+            value={"total_amount": 20000.0},
+            source=SourceRef(document="hospital_bill.pdf", page=1, quote="Doctor fees"),
+        ),
+        ClaimFact(
+            name="claim_form_summary",
+            value={"claimed_amount": 30000.0},
+            source=SourceRef(document="claim_form.pdf", page=1, quote="Total claimed"),
+        ),
+        ClaimFact(
+            name="hospital_bill_summary",
+            value={"billed_amount": 30000.0},
+            source=SourceRef(document="hospital_bill.pdf", page=1, quote="Total billed"),
+        ),
+    ]
+    findings = evaluate(gold_rulebook, facts, ["RULE_ROOM_RENT_CAP"])
+    assert len(findings) == 1
+    f = findings[0]
+    # Distinct subtotals (10000 vs 20000) must not cause needs_review
+    assert f.status == FindingStatus.SATISFIED.value
+    assert f.estimated_impact == 0.0
+
+
+# -----------------------------------------------------------------------------
+# Test 8: Conflict check scoping - different room rent rates ARE a conflict
+# -----------------------------------------------------------------------------
+def test_different_room_rent_rates_are_a_conflict(gold_rulebook: Rulebook):
+    """Two conflicting room rent facts with different rates must trigger needs_review."""
+    facts = [
+        ClaimFact(
+            name="room_rent_billing",
+            value={"daily_rate": 4000.0, "days": 3},
+            source=SourceRef(document="bill_1.pdf", page=1, quote="Rate 4000"),
+        ),
+        ClaimFact(
+            name="room_rent_billing",
+            value={"daily_rate": 8000.0, "days": 3},
+            source=SourceRef(document="bill_2.pdf", page=1, quote="Rate 8000"),
+        ),
+    ]
+    findings = evaluate(gold_rulebook, facts, ["RULE_ROOM_RENT_CAP"])
+    assert len(findings) == 1
+    f = findings[0]
+    assert f.status == FindingStatus.NEEDS_REVIEW.value
+    assert "conflicting" in f.explanation.lower() or "duplicate" in f.explanation.lower()
