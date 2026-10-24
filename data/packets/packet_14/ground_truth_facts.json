@@ -1,0 +1,14 @@
+[
+  {
+    "name": "submitted_documents",
+    "value": [
+      "claim_form",
+      "discharge_summary"
+    ],
+    "source": {
+      "document": "hospital_bill.pdf",
+      "page": 1,
+      "quote": "NOTICE: The itemized original Hospital Bill with receipt was not submitted with this claim packet."
+    }
+  }
+]

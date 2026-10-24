@@ -1,0 +1,17 @@
+[
+  {
+    "name": "hospitalization_details",
+    "value": {
+      "policy_inception_date": "2026-01-01",
+      "admission_date": "2026-01-31",
+      "days_elapsed": 30,
+      "cause": "illness",
+      "diagnosis": "acute bronchitis"
+    },
+    "source": {
+      "document": "discharge_summary.pdf",
+      "page": 1,
+      "quote": "Patient admitted on 31-Jan-2026 for acute bronchitis. Policy inception date: 01-Jan-2026 (30 days elapsed)."
+    }
+  }
+]

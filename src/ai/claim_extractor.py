@@ -16,6 +16,7 @@ from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field, ValidationError
 
+from src.ai.claim_loader import load_claim_document
 from src.ai.nebius_client import chat_json, get_client, get_model
 from src.documents.evidence import CitationCheck, check_citation
 from src.documents.pdf_extractor import DocumentExtraction

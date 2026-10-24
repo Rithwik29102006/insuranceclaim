@@ -1,0 +1,17 @@
+[
+  {
+    "name": "hospitalization_details",
+    "value": {
+      "policy_inception_date": "2026-01-01",
+      "admission_date": "2026-01-10",
+      "days_elapsed": 10,
+      "cause": "accidental_injury",
+      "diagnosis": "tibial fracture due to road traffic accident"
+    },
+    "source": {
+      "document": "discharge_summary.pdf",
+      "page": 1,
+      "quote": "Emergency Admission: 10-Jan-2026. Patient presented with compound tibial fracture following a vehicular road collision. Immediate surgical reduction required."
+    }
+  }
+]

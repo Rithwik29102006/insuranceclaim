@@ -1,0 +1,41 @@
+[
+  {
+    "name": "room_rent_billing",
+    "value": {
+      "room_type": "deluxe_room",
+      "daily_rate": 10000.0,
+      "days": 2,
+      "total_amount": 20000.0
+    },
+    "source": {
+      "document": "hospital_bill.pdf",
+      "page": 1,
+      "quote": "Deluxe Room Charges: 2 days @ INR 10000.00/day = Total INR 20000.00."
+    }
+  },
+  {
+    "name": "professional_fees_billing",
+    "value": {
+      "surgeon_fee": 12000.0,
+      "anesthetist_fee": 5000.0,
+      "consultant_fee": 3000.0,
+      "total_amount": 20000.0
+    },
+    "source": {
+      "document": "hospital_bill.pdf",
+      "page": 1,
+      "quote": "Professional Fees: Surgeon INR 12000, Anesthetist INR 5000, Physician INR 3000. Total INR 20000.00."
+    }
+  },
+  {
+    "name": "operation_theatre_billing",
+    "value": {
+      "ot_charges": 15000.0
+    },
+    "source": {
+      "document": "hospital_bill.pdf",
+      "page": 1,
+      "quote": "Operation Theatre Charges: Major OT booking and consumables = Total INR 15000.00."
+    }
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "name": "patient_medical_history",
+    "value": {
+      "diagnosis": "essential_hypertension",
+      "pre_existing_history": "Diagnosed 24 months prior to policy inception",
+      "hospitalization_cause": "acute hypertensive crisis",
+      "claimed_amount": 18500.0
+    },
+    "source": {
+      "document": "discharge_summary.pdf",
+      "page": 1,
+      "quote": "Patient has a 24-month known history of hypertension under medical management. Admitted for emergency stabilization of acute hypertensive crisis."
+    }
+  }
+]

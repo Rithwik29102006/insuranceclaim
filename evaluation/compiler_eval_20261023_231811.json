@@ -1,0 +1,239 @@
+{
+  "metadata": {
+    "model_id": "nvidia/nemotron-3-super-120b-a12b",
+    "git_commit_hash": "89004f4813d132d86fa37e025308ec32bb7666a9",
+    "timestamp": "2026-10-23T17:48:11.422916+00:00",
+    "total_gold_rules": 5,
+    "total_compiled_rules": 5
+  },
+  "metrics": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0,
+    "parameter_accuracy": 0.3333,
+    "citation_accuracy": 1.0,
+    "page_accuracy": 1.0,
+    "token_usage": {
+      "prompt_tokens": 2150,
+      "completion_tokens": 720,
+      "total_tokens": 2870
+    },
+    "cost_usd": 0.003448
+  },
+  "per_rule_diffs": [
+    {
+      "gold_rule_id": "RULE_REQ_DOCS",
+      "compiled_rule_id": "RULE_REQUIRED_DOCS",
+      "rule_type": "required_documents",
+      "rule_found": true,
+      "rule_type_correct": true,
+      "gold_page": 1,
+      "compiled_page": 1,
+      "page_correct": true,
+      "quote_verbatim": true,
+      "citation_reason": "verified",
+      "parameter_matches": 0,
+      "parameter_total": 2,
+      "parameter_accuracy": 0.0,
+      "parameter_diffs": {
+        "required_documents": {
+          "expected": [
+            "claim_form",
+            "hospital_bill",
+            "discharge_summary"
+          ],
+          "actual": null,
+          "match": false,
+          "reason": "missing_parameter"
+        },
+        "minimum_document_count": {
+          "expected": 3,
+          "actual": null,
+          "match": false,
+          "reason": "missing_parameter"
+        }
+      }
+    },
+    {
+      "gold_rule_id": "RULE_WAITING_PERIOD",
+      "compiled_rule_id": "RULE_WAITING_PERIOD",
+      "rule_type": "waiting_period",
+      "rule_found": true,
+      "rule_type_correct": true,
+      "gold_page": 2,
+      "compiled_page": 2,
+      "page_correct": true,
+      "quote_verbatim": true,
+      "citation_reason": "verified",
+      "parameter_matches": 1,
+      "parameter_total": 3,
+      "parameter_accuracy": 0.3333333333333333,
+      "parameter_diffs": {
+        "duration_days": {
+          "expected": 30,
+          "actual": 30,
+          "match": true
+        },
+        "applies_to": {
+          "expected": "illness",
+          "actual": null,
+          "match": false,
+          "reason": "missing_parameter"
+        },
+        "reference_date": {
+          "expected": "policy_inception_date",
+          "actual": null,
+          "match": false,
+          "reason": "missing_parameter"
+        }
+      }
+    },
+    {
+      "gold_rule_id": "RULE_ROOM_RENT_CAP",
+      "compiled_rule_id": "RULE_ROOM_RENT_CAP",
+      "rule_type": "room_rent_cap",
+      "rule_found": true,
+      "rule_type_correct": true,
+      "gold_page": 2,
+      "compiled_page": 2,
+      "page_correct": true,
+      "quote_verbatim": true,
+      "citation_reason": "verified",
+      "parameter_matches": 3,
+      "parameter_total": 7,
+      "parameter_accuracy": 0.42857142857142855,
+      "parameter_diffs": {
+        "cap": {
+          "expected": 5000.0,
+          "actual": 5000,
+          "match": true
+        },
+        "daily_limit_inr": {
+          "expected": 5000.0,
+          "actual": 5000,
+          "match": true
+        },
+        "formula_basis": {
+          "expected": "5000 / actual_daily_rate",
+          "actual": null,
+          "match": false,
+          "reason": "missing_parameter"
+        },
+        "affected_categories": {
+          "expected": [
+            "professional_fees",
+            "operation_theatre_charges"
+          ],
+          "actual": null,
+          "match": false,
+          "reason": "missing_parameter"
+        },
+        "currency": {
+          "expected": "INR",
+          "actual": "INR",
+          "match": true
+        },
+        "unit": {
+          "expected": "per_day",
+          "actual": null,
+          "match": false,
+          "reason": "missing_parameter"
+        },
+        "excess_payable_by": {
+          "expected": "insured",
+          "actual": null,
+          "match": false,
+          "reason": "missing_parameter"
+        }
+      }
+    },
+    {
+      "gold_rule_id": "RULE_CATARACT_SUBLIMIT",
+      "compiled_rule_id": "RULE_SUB_LIMIT_CATARACT",
+      "rule_type": "sub_limit",
+      "rule_found": true,
+      "rule_type_correct": true,
+      "gold_page": 3,
+      "compiled_page": 3,
+      "page_correct": true,
+      "quote_verbatim": true,
+      "citation_reason": "verified",
+      "parameter_matches": 2,
+      "parameter_total": 5,
+      "parameter_accuracy": 0.4,
+      "parameter_diffs": {
+        "category": {
+          "expected": "cataract_surgery",
+          "actual": null,
+          "match": false,
+          "reason": "missing_parameter"
+        },
+        "max_limit_inr": {
+          "expected": 40000.0,
+          "actual": 40000,
+          "match": true
+        },
+        "currency": {
+          "expected": "INR",
+          "actual": "INR",
+          "match": true
+        },
+        "unit": {
+          "expected": "per_eye",
+          "actual": null,
+          "match": false,
+          "reason": "missing_parameter"
+        },
+        "inclusive_items": {
+          "expected": [
+            "surgeon_fees",
+            "operating_room_charges",
+            "intraocular_lens_costs"
+          ],
+          "actual": null,
+          "match": false,
+          "reason": "missing_parameter"
+        }
+      }
+    },
+    {
+      "gold_rule_id": "RULE_NON_PAYABLE_ITEMS",
+      "compiled_rule_id": "RULE_NON_PAYABLE_ITEMS",
+      "rule_type": "non_payable_items",
+      "rule_found": true,
+      "rule_type_correct": true,
+      "gold_page": 3,
+      "compiled_page": 3,
+      "page_correct": true,
+      "quote_verbatim": true,
+      "citation_reason": "verified",
+      "parameter_matches": 0,
+      "parameter_total": 1,
+      "parameter_accuracy": 0.0,
+      "parameter_diffs": {
+        "excluded_items": {
+          "expected": [
+            "registration_fees",
+            "admission_processing_charges",
+            "gloves",
+            "face_masks",
+            "sanitizers",
+            "thermometer_charges",
+            "luxury_patient_amenity_kits"
+          ],
+          "actual": null,
+          "match": false,
+          "reason": "missing_parameter"
+        }
+      }
+    }
+  ],
+  "ambiguities_eval": {
+    "expected_ambiguities": [
+      "AMB_PRE_EXISTING_CONDITIONS"
+    ],
+    "detected_in_rules": [],
+    "ambiguity_recall": 0.0,
+    "notes": "Section 4.1 is defined as an ambiguity clause in gold rulebook."
+  }
+}

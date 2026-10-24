@@ -1,0 +1,20 @@
+[
+  {
+    "name": "non_payable_items_breakdown",
+    "value": [
+      {
+        "item": "sanitizing_gel",
+        "amount": 500.0
+      },
+      {
+        "item": "latex_hand_wear",
+        "amount": 400.0
+      }
+    ],
+    "source": {
+      "document": "hospital_bill.pdf",
+      "page": 1,
+      "quote": "Sundries breakdown: sanitizing_gel INR 500.00, latex_hand_wear INR 400.00."
+    }
+  }
+]

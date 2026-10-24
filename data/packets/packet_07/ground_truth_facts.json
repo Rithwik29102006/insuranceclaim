@@ -1,0 +1,18 @@
+[
+  {
+    "name": "surgical_expenses",
+    "value": {
+      "procedure": "cataract_surgery",
+      "eye": "left",
+      "surgeon_fee": 30000.0,
+      "ot_charges": 10000.0,
+      "lens_cost": 15000.0,
+      "total_cataract_billed": 55000.0
+    },
+    "source": {
+      "document": "hospital_bill.pdf",
+      "page": 1,
+      "quote": "Procedure: Phacoemulsification with Foldable IOL (Left Eye). Surgeon Fee: INR 30000, OT: INR 10000, Lens: INR 15000. Total Cataract Charges: INR 55000.00."
+    }
+  }
+]

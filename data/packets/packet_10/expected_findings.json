@@ -1,0 +1,24 @@
+[
+  {
+    "rule_id": "RULE_ROOM_RENT_CAP",
+    "status": "needs_review",
+    "inputs_used": {
+      "daily_rate_billed": 7000.0,
+      "days": null,
+      "daily_cap": 5000.0
+    },
+    "calculation_steps": [
+      "Identified billed daily room rent: INR 7000.00.",
+      "Daily rate exceeds cap of INR 5000.00.",
+      "Attempted deduction calculation: duration in days is unknown or invalid.",
+      "Financial impact cannot be computed without total days of stay."
+    ],
+    "explanation": "Daily room rent of INR 7000 exceeds INR 5000 daily limit, but total stay duration is missing from submitted records.",
+    "source": {
+      "document": "synthetic_policy.pdf",
+      "page": 2,
+      "quote": "Section 2.2 (Room Rent Daily Limit and Proportional Deduction): The maximum eligible room and boarding expense covered by the insurer is INR 5000 per day of hospitalization. Any room rent charges incurred in excess of INR 5000 per day are non-payable by the insurer and shall be borne entirely by the insured person. If the actual daily room rent exceeds INR 5000, then professional fees and operation theatre charges are payable only in the ratio 5000 / actual daily rate, with the remaining balance of such charges being non-payable."
+    },
+    "estimated_impact": null
+  }
+]

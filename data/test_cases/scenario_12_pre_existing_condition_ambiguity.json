@@ -1,0 +1,51 @@
+{
+  "scenario_id": "SCENARIO_12_PRE_EXISTING_CONDITION_AMBIGUITY",
+  "description": "Claimant filed a reimbursement claim for chronic hypertensive disorder. Policy Section 4.1 excludes Pre-Existing Conditions 'as defined under applicable regulations' without defining the applicable regulatory framework, lookback timeframe, or statutory waiting period duration, creating an unresolved ambiguity that requires human review.",
+  "claim_facts": [
+    {
+      "name": "patient_medical_history",
+      "value": {
+        "diagnosis": "essential_hypertension",
+        "pre_existing_history": "Diagnosed 24 months prior to policy inception",
+        "hospitalization_cause": "acute hypertensive crisis",
+        "claimed_amount": 18500.0
+      },
+      "source": {
+        "document": "discharge_summary.pdf",
+        "page": 1,
+        "quote": "Patient has a 24-month known history of hypertension under medical management. Admitted for emergency stabilization of acute hypertensive crisis."
+      }
+    }
+  ],
+  "applicable_rule_ids": [
+    "AMB_PRE_EXISTING_CONDITIONS"
+  ],
+  "expected_findings": [
+    {
+      "rule_id": "AMB_PRE_EXISTING_CONDITIONS",
+      "status": "needs_review",
+      "inputs_used": {
+        "diagnosis": "essential_hypertension",
+        "pre_existing_history": "Diagnosed 24 months prior to inception",
+        "policy_clause": "Section 4.1"
+      },
+      "calculation_steps": [
+        "Identified claim diagnosis as chronic essential hypertension with pre-policy onset.",
+        "Evaluated Section 4.1 exclusion: applies to Pre-Existing Conditions 'as defined under applicable regulations'.",
+        "Checked policy definitions: policy does not define 'applicable regulations', nor does it state the applicable lookback window or statutory waiting period duration.",
+        "Determined finding status: needs_review. Automated rule engine cannot determine admissibility without external regulatory guidance or human adjuster review.",
+        "Financial impact: None (cannot be deterministically computed for an ambiguous condition)."
+      ],
+      "explanation": "Section 4.1 excludes Pre-Existing Conditions 'as defined under applicable regulations' without specifying the regulatory authority, lookback period, or statutory duration in the policy text. Automated determination is blocked and human review is required.",
+      "source": {
+        "document": "synthetic_policy.pdf",
+        "page": 4,
+        "quote": "Section 4.1 (Pre-Existing Conditions Exclusion): Any medical condition, ailment, or injury that constitutes a Pre-Existing Condition, as defined under applicable regulations, shall be excluded from coverage until the expiration of the statutory waiting period. Claims arising from or attributable to Pre-Existing Conditions shall not be indemnified."
+      },
+      "estimated_impact": null
+    }
+  ],
+  "missing_information_required": true,
+  "human_review_required": true,
+  "expected_financial_impact": null
+}

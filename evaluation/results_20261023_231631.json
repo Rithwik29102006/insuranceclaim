@@ -1,0 +1,115 @@
+{
+  "metadata": {
+    "strategy": "mock",
+    "model_ids": {
+      "strategy": "mock",
+      "primary_model": "mock-nemotron-offline"
+    },
+    "prompt_version": "v2.0-claim-extractor",
+    "seed": 20261022,
+    "git_commit_hash": "89004f4813d132d86fa37e025308ec32bb7666a9",
+    "timestamp": "2026-10-23T17:46:32.478228+00:00",
+    "total_packets_evaluated": 2
+  },
+  "metrics": {
+    "overall_fact_extraction_accuracy": 1.0,
+    "finding_status_accuracy": 1.0,
+    "detection_rate_seeded_violations": 1.0,
+    "false_warning_rate": 0.0,
+    "payout_calculation_accuracy": 1.0,
+    "citation_accuracy": 1.0,
+    "average_latency_ms": 181.52,
+    "total_latency_ms": 363.04,
+    "cost_accounting": {
+      "total_cost_usd": 0.00029,
+      "average_cost_per_packet_usd": 0.000145
+    },
+    "token_usage": {
+      "prompt_tokens": 811,
+      "completion_tokens": 213,
+      "total_tokens": 1024
+    }
+  },
+  "fact_breakdown": {
+    "submitted_documents": {
+      "ground_truth_count": 2,
+      "matched_count": 2,
+      "accuracy": 1.0
+    }
+  },
+  "failures_by_packet": {},
+  "packet_results": [
+    {
+      "packet_id": "packet_01",
+      "scenario_id": "SCENARIO_01_ALL_DOCUMENTS_PRESENT",
+      "facts_ground_truth_count": 1,
+      "facts_extracted_count": 1,
+      "facts_matched_count": 1,
+      "fact_accuracy": 1.0,
+      "per_fact_matches": {
+        "submitted_documents": {
+          "matched": 1,
+          "total": 1
+        }
+      },
+      "findings_expected_count": 1,
+      "findings_actual_count": 1,
+      "status_matches": 1,
+      "status_accuracy": 1.0,
+      "violations_expected": 0,
+      "violations_detected": 0,
+      "satisfied_expected": 1,
+      "satisfied_flagged": 0,
+      "payout_expected_count": 1,
+      "payout_matches_count": 1,
+      "payout_accuracy": 1.0,
+      "citations_total": 1,
+      "citations_verified": 1,
+      "citation_accuracy": 1.0,
+      "ocr_status": "ok",
+      "latency_ms": 254.41029999637976,
+      "model_id": "mock-nemotron-offline",
+      "cost_usd": 0.00014,
+      "prompt_tokens": 397,
+      "completion_tokens": 101,
+      "total_tokens": 498,
+      "failures": []
+    },
+    {
+      "packet_id": "packet_02",
+      "scenario_id": "SCENARIO_02_REQUIRED_DOCUMENT_MISSING",
+      "facts_ground_truth_count": 1,
+      "facts_extracted_count": 1,
+      "facts_matched_count": 1,
+      "fact_accuracy": 1.0,
+      "per_fact_matches": {
+        "submitted_documents": {
+          "matched": 1,
+          "total": 1
+        }
+      },
+      "findings_expected_count": 1,
+      "findings_actual_count": 1,
+      "status_matches": 1,
+      "status_accuracy": 1.0,
+      "violations_expected": 1,
+      "violations_detected": 1,
+      "satisfied_expected": 0,
+      "satisfied_flagged": 0,
+      "payout_expected_count": 0,
+      "payout_matches_count": 0,
+      "payout_accuracy": 1.0,
+      "citations_total": 1,
+      "citations_verified": 1,
+      "citation_accuracy": 1.0,
+      "ocr_status": "ok",
+      "latency_ms": 108.62650000490248,
+      "model_id": "mock-nemotron-offline",
+      "cost_usd": 0.00015,
+      "prompt_tokens": 414,
+      "completion_tokens": 112,
+      "total_tokens": 526,
+      "failures": []
+    }
+  ]
+}

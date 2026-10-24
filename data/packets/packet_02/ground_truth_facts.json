@@ -1,0 +1,14 @@
+[
+  {
+    "name": "submitted_documents",
+    "value": [
+      "claim_form",
+      "hospital_bill"
+    ],
+    "source": {
+      "document": "claim_form.pdf",
+      "page": 1,
+      "quote": "Attached documents: Claim Form and Hospital Inpatient Bill. Note: Discharge summary is currently awaited from medical records department."
+    }
+  }
+]

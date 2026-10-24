@@ -1,0 +1,898 @@
+{
+  "metadata": {
+    "strategy": "mock",
+    "model_ids": {
+      "strategy": "mock",
+      "primary_model": "mock-nemotron-offline"
+    },
+    "prompt_version": "v2.0-claim-extractor",
+    "seed": 20261022,
+    "git_commit_hash": "8e70902f0b28e5e33453c011174c3e56c9590791",
+    "timestamp": "2026-10-23T17:27:48.801351+00:00",
+    "total_packets_evaluated": 20
+  },
+  "metrics": {
+    "overall_fact_extraction_accuracy": 0.5417,
+    "finding_status_accuracy": 0.65,
+    "detection_rate_seeded_violations": 0.7,
+    "false_warning_rate": 0.2857,
+    "payout_calculation_accuracy": 0.5,
+    "citation_accuracy": 0.9333,
+    "average_latency_ms": 100.34,
+    "total_latency_ms": 2006.73,
+    "token_usage": {
+      "prompt_tokens": 8920,
+      "completion_tokens": 2370,
+      "total_tokens": 11290
+    }
+  },
+  "fact_breakdown": {
+    "claim_form_summary": {
+      "ground_truth_count": 1,
+      "matched_count": 1,
+      "accuracy": 1.0
+    },
+    "hospital_bill_summary": {
+      "ground_truth_count": 1,
+      "matched_count": 0,
+      "accuracy": 0.0
+    },
+    "hospitalization_details": {
+      "ground_truth_count": 5,
+      "matched_count": 5,
+      "accuracy": 1.0
+    },
+    "non_payable_items_breakdown": {
+      "ground_truth_count": 3,
+      "matched_count": 2,
+      "accuracy": 0.6667
+    },
+    "operation_theatre_billing": {
+      "ground_truth_count": 1,
+      "matched_count": 0,
+      "accuracy": 0.0
+    },
+    "patient_medical_history": {
+      "ground_truth_count": 1,
+      "matched_count": 1,
+      "accuracy": 1.0
+    },
+    "professional_fees_billing": {
+      "ground_truth_count": 1,
+      "matched_count": 0,
+      "accuracy": 0.0
+    },
+    "room_rent_billing": {
+      "ground_truth_count": 6,
+      "matched_count": 0,
+      "accuracy": 0.0
+    },
+    "submitted_documents": {
+      "ground_truth_count": 4,
+      "matched_count": 4,
+      "accuracy": 1.0
+    },
+    "surgical_expenses": {
+      "ground_truth_count": 1,
+      "matched_count": 0,
+      "accuracy": 0.0
+    }
+  },
+  "failures_by_packet": {
+    "packet_03": [
+      "mock_corruption: altered quote text to cause citation mismatch",
+      "citation_fail: fact 'hospitalization_details' quote not found on page 1 (not_found)"
+    ],
+    "packet_05": [
+      "mock_corruption: perturbed room_rent_billing.daily_rate to 5500.0 (triggers false warning)",
+      "mismatched_fact: 'room_rent_billing' value/source differs from ground truth",
+      "status_mismatch: rule 'RULE_ROOM_RENT_CAP' expected satisfied, got violated",
+      "false_warning: rule 'RULE_ROOM_RENT_CAP' expected satisfied, flagged as violated",
+      "payout_mismatch: rule 'RULE_ROOM_RENT_CAP' expected INR 0.00, got INR 1500.00"
+    ],
+    "packet_06": [
+      "ocr_unavailable: hospital_bill.pdf page 1 requires OCR but Tesseract is not installed or missing 'eng.traineddata'",
+      "extraction_failure: Fact 'room_rent_billing' dropped because source 'hospital_bill.pdf' failed OCR",
+      "missing_fact: 'room_rent_billing' not found in extracted facts",
+      "status_mismatch: rule 'RULE_ROOM_RENT_CAP' expected violated, got unable_to_verify",
+      "payout_mismatch: rule 'RULE_ROOM_RENT_CAP' expected INR 10000.00, got None"
+    ],
+    "packet_07": [
+      "mock_corruption: altered total_cataract_billed to 52000.0 (tests payout accuracy mismatch)",
+      "mismatched_fact: 'surgical_expenses' value/source differs from ground truth",
+      "payout_mismatch: rule 'RULE_CATARACT_SUBLIMIT' expected INR 15000.00, got INR 12000.00"
+    ],
+    "packet_10": [
+      "ocr_unavailable: hospital_bill.pdf page 1 requires OCR but Tesseract is not installed or missing 'eng.traineddata'",
+      "extraction_failure: Fact 'room_rent_billing' dropped because source 'hospital_bill.pdf' failed OCR",
+      "missing_fact: 'room_rent_billing' not found in extracted facts",
+      "status_mismatch: rule 'RULE_ROOM_RENT_CAP' expected needs_review, got unable_to_verify"
+    ],
+    "packet_11": [
+      "ocr_unavailable: hospital_bill.pdf page 1 requires OCR but Tesseract is not installed or missing 'eng.traineddata'",
+      "extraction_failure: Fact 'room_rent_billing' dropped because source 'hospital_bill.pdf' failed OCR",
+      "extraction_failure: Fact 'professional_fees_billing' dropped because source 'hospital_bill.pdf' failed OCR",
+      "extraction_failure: Fact 'operation_theatre_billing' dropped because source 'hospital_bill.pdf' failed OCR",
+      "missing_fact: 'room_rent_billing' not found in extracted facts",
+      "missing_fact: 'professional_fees_billing' not found in extracted facts",
+      "missing_fact: 'operation_theatre_billing' not found in extracted facts",
+      "status_mismatch: rule 'RULE_ROOM_RENT_CAP' expected violated, got unable_to_verify",
+      "payout_mismatch: rule 'RULE_ROOM_RENT_CAP' expected INR 27500.00, got None"
+    ],
+    "packet_15": [
+      "ocr_unavailable: hospital_bill.pdf page 1 requires OCR but Tesseract is not installed or missing 'eng.traineddata'",
+      "extraction_failure: Fact 'non_payable_items_breakdown' dropped because source 'hospital_bill.pdf' failed OCR",
+      "missing_fact: 'non_payable_items_breakdown' not found in extracted facts",
+      "status_mismatch: rule 'RULE_NON_PAYABLE_ITEMS' expected violated, got unable_to_verify",
+      "payout_mismatch: rule 'RULE_NON_PAYABLE_ITEMS' expected INR 2900.00, got None"
+    ],
+    "packet_17": [
+      "ocr_unavailable: hospital_bill.pdf page 1 requires OCR but Tesseract is not installed or missing 'eng.traineddata'",
+      "extraction_failure: Fact 'room_rent_billing' dropped because source 'hospital_bill.pdf' failed OCR",
+      "missing_fact: 'room_rent_billing' not found in extracted facts",
+      "status_mismatch: rule 'RULE_ROOM_RENT_CAP' expected satisfied, got unable_to_verify",
+      "false_warning: rule 'RULE_ROOM_RENT_CAP' expected satisfied, flagged as unable_to_verify",
+      "payout_mismatch: rule 'RULE_ROOM_RENT_CAP' expected INR 0.00, got None"
+    ],
+    "packet_20": [
+      "ocr_unavailable: hospital_bill.pdf page 1 requires OCR but Tesseract is not installed or missing 'eng.traineddata'",
+      "extraction_failure: Fact 'hospital_bill_summary' dropped because source 'hospital_bill.pdf' failed OCR",
+      "extraction_failure: Fact 'room_rent_billing' dropped because source 'hospital_bill.pdf' failed OCR",
+      "missing_fact: 'hospital_bill_summary' not found in extracted facts",
+      "missing_fact: 'room_rent_billing' not found in extracted facts",
+      "status_mismatch: rule 'RULE_ROOM_RENT_CAP' expected needs_review, got unable_to_verify"
+    ]
+  },
+  "packet_results": [
+    {
+      "packet_id": "packet_01",
+      "scenario_id": "SCENARIO_01_ALL_DOCUMENTS_PRESENT",
+      "facts_ground_truth_count": 1,
+      "facts_extracted_count": 1,
+      "facts_matched_count": 1,
+      "fact_accuracy": 1.0,
+      "per_fact_matches": {
+        "submitted_documents": {
+          "matched": 1,
+          "total": 1
+        }
+      },
+      "findings_expected_count": 1,
+      "findings_actual_count": 1,
+      "status_matches": 1,
+      "status_accuracy": 1.0,
+      "violations_expected": 0,
+      "violations_detected": 0,
+      "satisfied_expected": 1,
+      "satisfied_flagged": 0,
+      "payout_expected_count": 1,
+      "payout_matches_count": 1,
+      "payout_accuracy": 1.0,
+      "citations_total": 1,
+      "citations_verified": 1,
+      "citation_accuracy": 1.0,
+      "ocr_status": "ok",
+      "latency_ms": 157.34079999674577,
+      "prompt_tokens": 397,
+      "completion_tokens": 101,
+      "total_tokens": 498,
+      "failures": []
+    },
+    {
+      "packet_id": "packet_02",
+      "scenario_id": "SCENARIO_02_REQUIRED_DOCUMENT_MISSING",
+      "facts_ground_truth_count": 1,
+      "facts_extracted_count": 1,
+      "facts_matched_count": 1,
+      "fact_accuracy": 1.0,
+      "per_fact_matches": {
+        "submitted_documents": {
+          "matched": 1,
+          "total": 1
+        }
+      },
+      "findings_expected_count": 1,
+      "findings_actual_count": 1,
+      "status_matches": 1,
+      "status_accuracy": 1.0,
+      "violations_expected": 1,
+      "violations_detected": 1,
+      "satisfied_expected": 0,
+      "satisfied_flagged": 0,
+      "payout_expected_count": 0,
+      "payout_matches_count": 0,
+      "payout_accuracy": 1.0,
+      "citations_total": 1,
+      "citations_verified": 1,
+      "citation_accuracy": 1.0,
+      "ocr_status": "ok",
+      "latency_ms": 95.68929999659304,
+      "prompt_tokens": 414,
+      "completion_tokens": 112,
+      "total_tokens": 526,
+      "failures": []
+    },
+    {
+      "packet_id": "packet_03",
+      "scenario_id": "SCENARIO_03_WAITING_PERIOD_SATISFIED",
+      "facts_ground_truth_count": 1,
+      "facts_extracted_count": 1,
+      "facts_matched_count": 1,
+      "fact_accuracy": 1.0,
+      "per_fact_matches": {
+        "hospitalization_details": {
+          "matched": 1,
+          "total": 1
+        }
+      },
+      "findings_expected_count": 1,
+      "findings_actual_count": 1,
+      "status_matches": 1,
+      "status_accuracy": 1.0,
+      "violations_expected": 0,
+      "violations_detected": 0,
+      "satisfied_expected": 1,
+      "satisfied_flagged": 0,
+      "payout_expected_count": 1,
+      "payout_matches_count": 1,
+      "payout_accuracy": 1.0,
+      "citations_total": 1,
+      "citations_verified": 0,
+      "citation_accuracy": 0.0,
+      "ocr_status": "ok",
+      "latency_ms": 103.34450000664219,
+      "prompt_tokens": 431,
+      "completion_tokens": 123,
+      "total_tokens": 554,
+      "failures": [
+        "mock_corruption: altered quote text to cause citation mismatch",
+        "citation_fail: fact 'hospitalization_details' quote not found on page 1 (not_found)"
+      ]
+    },
+    {
+      "packet_id": "packet_04",
+      "scenario_id": "SCENARIO_04_WAITING_PERIOD_NOT_SATISFIED",
+      "facts_ground_truth_count": 1,
+      "facts_extracted_count": 1,
+      "facts_matched_count": 1,
+      "fact_accuracy": 1.0,
+      "per_fact_matches": {
+        "hospitalization_details": {
+          "matched": 1,
+          "total": 1
+        }
+      },
+      "findings_expected_count": 1,
+      "findings_actual_count": 1,
+      "status_matches": 1,
+      "status_accuracy": 1.0,
+      "violations_expected": 1,
+      "violations_detected": 1,
+      "satisfied_expected": 0,
+      "satisfied_flagged": 0,
+      "payout_expected_count": 0,
+      "payout_matches_count": 0,
+      "payout_accuracy": 1.0,
+      "citations_total": 1,
+      "citations_verified": 1,
+      "citation_accuracy": 1.0,
+      "ocr_status": "ok",
+      "latency_ms": 97.39510000508744,
+      "prompt_tokens": 448,
+      "completion_tokens": 134,
+      "total_tokens": 582,
+      "failures": []
+    },
+    {
+      "packet_id": "packet_05",
+      "scenario_id": "SCENARIO_05_ROOM_RENT_WITHIN_LIMIT",
+      "facts_ground_truth_count": 1,
+      "facts_extracted_count": 1,
+      "facts_matched_count": 0,
+      "fact_accuracy": 0.0,
+      "per_fact_matches": {
+        "room_rent_billing": {
+          "matched": 0,
+          "total": 1
+        }
+      },
+      "findings_expected_count": 1,
+      "findings_actual_count": 1,
+      "status_matches": 0,
+      "status_accuracy": 0.0,
+      "violations_expected": 0,
+      "violations_detected": 0,
+      "satisfied_expected": 1,
+      "satisfied_flagged": 1,
+      "payout_expected_count": 1,
+      "payout_matches_count": 0,
+      "payout_accuracy": 0.0,
+      "citations_total": 1,
+      "citations_verified": 1,
+      "citation_accuracy": 1.0,
+      "ocr_status": "ok",
+      "latency_ms": 97.458899996127,
+      "prompt_tokens": 465,
+      "completion_tokens": 145,
+      "total_tokens": 610,
+      "failures": [
+        "mock_corruption: perturbed room_rent_billing.daily_rate to 5500.0 (triggers false warning)",
+        "mismatched_fact: 'room_rent_billing' value/source differs from ground truth",
+        "status_mismatch: rule 'RULE_ROOM_RENT_CAP' expected satisfied, got violated",
+        "false_warning: rule 'RULE_ROOM_RENT_CAP' expected satisfied, flagged as violated",
+        "payout_mismatch: rule 'RULE_ROOM_RENT_CAP' expected INR 0.00, got INR 1500.00"
+      ]
+    },
+    {
+      "packet_id": "packet_06",
+      "scenario_id": "SCENARIO_06_ROOM_RENT_ABOVE_LIMIT",
+      "facts_ground_truth_count": 1,
+      "facts_extracted_count": 0,
+      "facts_matched_count": 0,
+      "fact_accuracy": 0.0,
+      "per_fact_matches": {
+        "room_rent_billing": {
+          "matched": 0,
+          "total": 1
+        }
+      },
+      "findings_expected_count": 1,
+      "findings_actual_count": 1,
+      "status_matches": 0,
+      "status_accuracy": 0.0,
+      "violations_expected": 1,
+      "violations_detected": 0,
+      "satisfied_expected": 0,
+      "satisfied_flagged": 0,
+      "payout_expected_count": 1,
+      "payout_matches_count": 0,
+      "payout_accuracy": 0.0,
+      "citations_total": 0,
+      "citations_verified": 0,
+      "citation_accuracy": 1.0,
+      "ocr_status": "ocr_unavailable",
+      "latency_ms": 101.42969999287743,
+      "prompt_tokens": 482,
+      "completion_tokens": 96,
+      "total_tokens": 578,
+      "failures": [
+        "ocr_unavailable: hospital_bill.pdf page 1 requires OCR but Tesseract is not installed or missing 'eng.traineddata'",
+        "extraction_failure: Fact 'room_rent_billing' dropped because source 'hospital_bill.pdf' failed OCR",
+        "missing_fact: 'room_rent_billing' not found in extracted facts",
+        "status_mismatch: rule 'RULE_ROOM_RENT_CAP' expected violated, got unable_to_verify",
+        "payout_mismatch: rule 'RULE_ROOM_RENT_CAP' expected INR 10000.00, got None"
+      ]
+    },
+    {
+      "packet_id": "packet_07",
+      "scenario_id": "SCENARIO_07_SUBLIMIT_EXCEEDED",
+      "facts_ground_truth_count": 1,
+      "facts_extracted_count": 1,
+      "facts_matched_count": 0,
+      "fact_accuracy": 0.0,
+      "per_fact_matches": {
+        "surgical_expenses": {
+          "matched": 0,
+          "total": 1
+        }
+      },
+      "findings_expected_count": 1,
+      "findings_actual_count": 1,
+      "status_matches": 1,
+      "status_accuracy": 1.0,
+      "violations_expected": 1,
+      "violations_detected": 1,
+      "satisfied_expected": 0,
+      "satisfied_flagged": 0,
+      "payout_expected_count": 1,
+      "payout_matches_count": 0,
+      "payout_accuracy": 0.0,
+      "citations_total": 1,
+      "citations_verified": 1,
+      "citation_accuracy": 1.0,
+      "ocr_status": "ok",
+      "latency_ms": 94.73970001272392,
+      "prompt_tokens": 499,
+      "completion_tokens": 107,
+      "total_tokens": 606,
+      "failures": [
+        "mock_corruption: altered total_cataract_billed to 52000.0 (tests payout accuracy mismatch)",
+        "mismatched_fact: 'surgical_expenses' value/source differs from ground truth",
+        "payout_mismatch: rule 'RULE_CATARACT_SUBLIMIT' expected INR 15000.00, got INR 12000.00"
+      ]
+    },
+    {
+      "packet_id": "packet_08",
+      "scenario_id": "SCENARIO_08_NON_PAYABLE_ITEM_PRESENT",
+      "facts_ground_truth_count": 1,
+      "facts_extracted_count": 1,
+      "facts_matched_count": 1,
+      "fact_accuracy": 1.0,
+      "per_fact_matches": {
+        "non_payable_items_breakdown": {
+          "matched": 1,
+          "total": 1
+        }
+      },
+      "findings_expected_count": 1,
+      "findings_actual_count": 1,
+      "status_matches": 1,
+      "status_accuracy": 1.0,
+      "violations_expected": 1,
+      "violations_detected": 1,
+      "satisfied_expected": 0,
+      "satisfied_flagged": 0,
+      "payout_expected_count": 1,
+      "payout_matches_count": 1,
+      "payout_accuracy": 1.0,
+      "citations_total": 1,
+      "citations_verified": 1,
+      "citation_accuracy": 1.0,
+      "ocr_status": "ok",
+      "latency_ms": 99.74019999208394,
+      "prompt_tokens": 516,
+      "completion_tokens": 118,
+      "total_tokens": 634,
+      "failures": []
+    },
+    {
+      "packet_id": "packet_09",
+      "scenario_id": "SCENARIO_09_ACCIDENT_WAITING_PERIOD_EXEMPT",
+      "facts_ground_truth_count": 1,
+      "facts_extracted_count": 1,
+      "facts_matched_count": 1,
+      "fact_accuracy": 1.0,
+      "per_fact_matches": {
+        "hospitalization_details": {
+          "matched": 1,
+          "total": 1
+        }
+      },
+      "findings_expected_count": 1,
+      "findings_actual_count": 1,
+      "status_matches": 1,
+      "status_accuracy": 1.0,
+      "violations_expected": 0,
+      "violations_detected": 0,
+      "satisfied_expected": 1,
+      "satisfied_flagged": 0,
+      "payout_expected_count": 1,
+      "payout_matches_count": 1,
+      "payout_accuracy": 1.0,
+      "citations_total": 1,
+      "citations_verified": 1,
+      "citation_accuracy": 1.0,
+      "ocr_status": "ok",
+      "latency_ms": 98.65679999347776,
+      "prompt_tokens": 383,
+      "completion_tokens": 129,
+      "total_tokens": 512,
+      "failures": []
+    },
+    {
+      "packet_id": "packet_10",
+      "scenario_id": "SCENARIO_10_ROOM_RENT_UNKNOWN_DURATION",
+      "facts_ground_truth_count": 1,
+      "facts_extracted_count": 0,
+      "facts_matched_count": 0,
+      "fact_accuracy": 0.0,
+      "per_fact_matches": {
+        "room_rent_billing": {
+          "matched": 0,
+          "total": 1
+        }
+      },
+      "findings_expected_count": 1,
+      "findings_actual_count": 1,
+      "status_matches": 0,
+      "status_accuracy": 0.0,
+      "violations_expected": 0,
+      "violations_detected": 0,
+      "satisfied_expected": 0,
+      "satisfied_flagged": 0,
+      "payout_expected_count": 0,
+      "payout_matches_count": 0,
+      "payout_accuracy": 1.0,
+      "citations_total": 0,
+      "citations_verified": 0,
+      "citation_accuracy": 1.0,
+      "ocr_status": "ocr_unavailable",
+      "latency_ms": 94.40620000532363,
+      "prompt_tokens": 400,
+      "completion_tokens": 140,
+      "total_tokens": 540,
+      "failures": [
+        "ocr_unavailable: hospital_bill.pdf page 1 requires OCR but Tesseract is not installed or missing 'eng.traineddata'",
+        "extraction_failure: Fact 'room_rent_billing' dropped because source 'hospital_bill.pdf' failed OCR",
+        "missing_fact: 'room_rent_billing' not found in extracted facts",
+        "status_mismatch: rule 'RULE_ROOM_RENT_CAP' expected needs_review, got unable_to_verify"
+      ]
+    },
+    {
+      "packet_id": "packet_11",
+      "scenario_id": "SCENARIO_11_ROOM_RENT_PROPORTIONAL_DEDUCTION",
+      "facts_ground_truth_count": 3,
+      "facts_extracted_count": 0,
+      "facts_matched_count": 0,
+      "fact_accuracy": 0.0,
+      "per_fact_matches": {
+        "room_rent_billing": {
+          "matched": 0,
+          "total": 1
+        },
+        "professional_fees_billing": {
+          "matched": 0,
+          "total": 1
+        },
+        "operation_theatre_billing": {
+          "matched": 0,
+          "total": 1
+        }
+      },
+      "findings_expected_count": 1,
+      "findings_actual_count": 1,
+      "status_matches": 0,
+      "status_accuracy": 0.0,
+      "violations_expected": 1,
+      "violations_detected": 0,
+      "satisfied_expected": 0,
+      "satisfied_flagged": 0,
+      "payout_expected_count": 1,
+      "payout_matches_count": 0,
+      "payout_accuracy": 0.0,
+      "citations_total": 0,
+      "citations_verified": 0,
+      "citation_accuracy": 1.0,
+      "ocr_status": "ocr_unavailable",
+      "latency_ms": 95.69280000869185,
+      "prompt_tokens": 417,
+      "completion_tokens": 91,
+      "total_tokens": 508,
+      "failures": [
+        "ocr_unavailable: hospital_bill.pdf page 1 requires OCR but Tesseract is not installed or missing 'eng.traineddata'",
+        "extraction_failure: Fact 'room_rent_billing' dropped because source 'hospital_bill.pdf' failed OCR",
+        "extraction_failure: Fact 'professional_fees_billing' dropped because source 'hospital_bill.pdf' failed OCR",
+        "extraction_failure: Fact 'operation_theatre_billing' dropped because source 'hospital_bill.pdf' failed OCR",
+        "missing_fact: 'room_rent_billing' not found in extracted facts",
+        "missing_fact: 'professional_fees_billing' not found in extracted facts",
+        "missing_fact: 'operation_theatre_billing' not found in extracted facts",
+        "status_mismatch: rule 'RULE_ROOM_RENT_CAP' expected violated, got unable_to_verify",
+        "payout_mismatch: rule 'RULE_ROOM_RENT_CAP' expected INR 27500.00, got None"
+      ]
+    },
+    {
+      "packet_id": "packet_12",
+      "scenario_id": "SCENARIO_12_PRE_EXISTING_CONDITION_AMBIGUITY",
+      "facts_ground_truth_count": 1,
+      "facts_extracted_count": 1,
+      "facts_matched_count": 1,
+      "fact_accuracy": 1.0,
+      "per_fact_matches": {
+        "patient_medical_history": {
+          "matched": 1,
+          "total": 1
+        }
+      },
+      "findings_expected_count": 1,
+      "findings_actual_count": 1,
+      "status_matches": 1,
+      "status_accuracy": 1.0,
+      "violations_expected": 0,
+      "violations_detected": 0,
+      "satisfied_expected": 0,
+      "satisfied_flagged": 0,
+      "payout_expected_count": 0,
+      "payout_matches_count": 0,
+      "payout_accuracy": 1.0,
+      "citations_total": 1,
+      "citations_verified": 1,
+      "citation_accuracy": 1.0,
+      "ocr_status": "ok",
+      "latency_ms": 94.05729999707546,
+      "prompt_tokens": 434,
+      "completion_tokens": 102,
+      "total_tokens": 536,
+      "failures": []
+    },
+    {
+      "packet_id": "packet_13",
+      "scenario_id": "SCENARIO_13_MISSING_CLAIM_FORM",
+      "facts_ground_truth_count": 1,
+      "facts_extracted_count": 1,
+      "facts_matched_count": 1,
+      "fact_accuracy": 1.0,
+      "per_fact_matches": {
+        "submitted_documents": {
+          "matched": 1,
+          "total": 1
+        }
+      },
+      "findings_expected_count": 1,
+      "findings_actual_count": 1,
+      "status_matches": 1,
+      "status_accuracy": 1.0,
+      "violations_expected": 1,
+      "violations_detected": 1,
+      "satisfied_expected": 0,
+      "satisfied_flagged": 0,
+      "payout_expected_count": 0,
+      "payout_matches_count": 0,
+      "payout_accuracy": 1.0,
+      "citations_total": 1,
+      "citations_verified": 1,
+      "citation_accuracy": 1.0,
+      "ocr_status": "ok",
+      "latency_ms": 107.43869999714661,
+      "prompt_tokens": 451,
+      "completion_tokens": 113,
+      "total_tokens": 564,
+      "failures": []
+    },
+    {
+      "packet_id": "packet_14",
+      "scenario_id": "SCENARIO_14_MISSING_HOSPITAL_BILL",
+      "facts_ground_truth_count": 1,
+      "facts_extracted_count": 1,
+      "facts_matched_count": 1,
+      "fact_accuracy": 1.0,
+      "per_fact_matches": {
+        "submitted_documents": {
+          "matched": 1,
+          "total": 1
+        }
+      },
+      "findings_expected_count": 1,
+      "findings_actual_count": 1,
+      "status_matches": 1,
+      "status_accuracy": 1.0,
+      "violations_expected": 1,
+      "violations_detected": 1,
+      "satisfied_expected": 0,
+      "satisfied_flagged": 0,
+      "payout_expected_count": 0,
+      "payout_matches_count": 0,
+      "payout_accuracy": 1.0,
+      "citations_total": 1,
+      "citations_verified": 1,
+      "citation_accuracy": 1.0,
+      "ocr_status": "ok",
+      "latency_ms": 96.9088000128977,
+      "prompt_tokens": 468,
+      "completion_tokens": 124,
+      "total_tokens": 592,
+      "failures": []
+    },
+    {
+      "packet_id": "packet_15",
+      "scenario_id": "SCENARIO_15_NON_PAYABLE_CASE_PUNCTUATION",
+      "facts_ground_truth_count": 1,
+      "facts_extracted_count": 0,
+      "facts_matched_count": 0,
+      "fact_accuracy": 0.0,
+      "per_fact_matches": {
+        "non_payable_items_breakdown": {
+          "matched": 0,
+          "total": 1
+        }
+      },
+      "findings_expected_count": 1,
+      "findings_actual_count": 1,
+      "status_matches": 0,
+      "status_accuracy": 0.0,
+      "violations_expected": 1,
+      "violations_detected": 0,
+      "satisfied_expected": 0,
+      "satisfied_flagged": 0,
+      "payout_expected_count": 1,
+      "payout_matches_count": 0,
+      "payout_accuracy": 0.0,
+      "citations_total": 0,
+      "citations_verified": 0,
+      "citation_accuracy": 1.0,
+      "ocr_status": "ocr_unavailable",
+      "latency_ms": 94.1915000003064,
+      "prompt_tokens": 485,
+      "completion_tokens": 135,
+      "total_tokens": 620,
+      "failures": [
+        "ocr_unavailable: hospital_bill.pdf page 1 requires OCR but Tesseract is not installed or missing 'eng.traineddata'",
+        "extraction_failure: Fact 'non_payable_items_breakdown' dropped because source 'hospital_bill.pdf' failed OCR",
+        "missing_fact: 'non_payable_items_breakdown' not found in extracted facts",
+        "status_mismatch: rule 'RULE_NON_PAYABLE_ITEMS' expected violated, got unable_to_verify",
+        "payout_mismatch: rule 'RULE_NON_PAYABLE_ITEMS' expected INR 2900.00, got None"
+      ]
+    },
+    {
+      "packet_id": "packet_16",
+      "scenario_id": "SCENARIO_16_NON_PAYABLE_SYNONYMS",
+      "facts_ground_truth_count": 1,
+      "facts_extracted_count": 1,
+      "facts_matched_count": 1,
+      "fact_accuracy": 1.0,
+      "per_fact_matches": {
+        "non_payable_items_breakdown": {
+          "matched": 1,
+          "total": 1
+        }
+      },
+      "findings_expected_count": 1,
+      "findings_actual_count": 1,
+      "status_matches": 1,
+      "status_accuracy": 1.0,
+      "violations_expected": 0,
+      "violations_detected": 0,
+      "satisfied_expected": 1,
+      "satisfied_flagged": 0,
+      "payout_expected_count": 1,
+      "payout_matches_count": 1,
+      "payout_accuracy": 1.0,
+      "citations_total": 1,
+      "citations_verified": 1,
+      "citation_accuracy": 1.0,
+      "ocr_status": "ok",
+      "latency_ms": 94.50370000558905,
+      "prompt_tokens": 502,
+      "completion_tokens": 146,
+      "total_tokens": 648,
+      "failures": []
+    },
+    {
+      "packet_id": "packet_17",
+      "scenario_id": "SCENARIO_17_ROOM_RENT_EXACTLY_AT_CAP",
+      "facts_ground_truth_count": 1,
+      "facts_extracted_count": 0,
+      "facts_matched_count": 0,
+      "fact_accuracy": 0.0,
+      "per_fact_matches": {
+        "room_rent_billing": {
+          "matched": 0,
+          "total": 1
+        }
+      },
+      "findings_expected_count": 1,
+      "findings_actual_count": 1,
+      "status_matches": 0,
+      "status_accuracy": 0.0,
+      "violations_expected": 0,
+      "violations_detected": 0,
+      "satisfied_expected": 1,
+      "satisfied_flagged": 1,
+      "payout_expected_count": 1,
+      "payout_matches_count": 0,
+      "payout_accuracy": 0.0,
+      "citations_total": 0,
+      "citations_verified": 0,
+      "citation_accuracy": 1.0,
+      "ocr_status": "ocr_unavailable",
+      "latency_ms": 91.53530000185128,
+      "prompt_tokens": 519,
+      "completion_tokens": 97,
+      "total_tokens": 616,
+      "failures": [
+        "ocr_unavailable: hospital_bill.pdf page 1 requires OCR but Tesseract is not installed or missing 'eng.traineddata'",
+        "extraction_failure: Fact 'room_rent_billing' dropped because source 'hospital_bill.pdf' failed OCR",
+        "missing_fact: 'room_rent_billing' not found in extracted facts",
+        "status_mismatch: rule 'RULE_ROOM_RENT_CAP' expected satisfied, got unable_to_verify",
+        "false_warning: rule 'RULE_ROOM_RENT_CAP' expected satisfied, flagged as unable_to_verify",
+        "payout_mismatch: rule 'RULE_ROOM_RENT_CAP' expected INR 0.00, got None"
+      ]
+    },
+    {
+      "packet_id": "packet_18",
+      "scenario_id": "SCENARIO_18_WAITING_PERIOD_DAY_30_BOUNDARY",
+      "facts_ground_truth_count": 1,
+      "facts_extracted_count": 1,
+      "facts_matched_count": 1,
+      "fact_accuracy": 1.0,
+      "per_fact_matches": {
+        "hospitalization_details": {
+          "matched": 1,
+          "total": 1
+        }
+      },
+      "findings_expected_count": 1,
+      "findings_actual_count": 1,
+      "status_matches": 1,
+      "status_accuracy": 1.0,
+      "violations_expected": 1,
+      "violations_detected": 1,
+      "satisfied_expected": 0,
+      "satisfied_flagged": 0,
+      "payout_expected_count": 0,
+      "payout_matches_count": 0,
+      "payout_accuracy": 1.0,
+      "citations_total": 1,
+      "citations_verified": 1,
+      "citation_accuracy": 1.0,
+      "ocr_status": "ok",
+      "latency_ms": 101.4426000037929,
+      "prompt_tokens": 386,
+      "completion_tokens": 108,
+      "total_tokens": 494,
+      "failures": []
+    },
+    {
+      "packet_id": "packet_19",
+      "scenario_id": "SCENARIO_19_WAITING_PERIOD_DAY_31_BOUNDARY",
+      "facts_ground_truth_count": 1,
+      "facts_extracted_count": 1,
+      "facts_matched_count": 1,
+      "fact_accuracy": 1.0,
+      "per_fact_matches": {
+        "hospitalization_details": {
+          "matched": 1,
+          "total": 1
+        }
+      },
+      "findings_expected_count": 1,
+      "findings_actual_count": 1,
+      "status_matches": 1,
+      "status_accuracy": 1.0,
+      "violations_expected": 0,
+      "violations_detected": 0,
+      "satisfied_expected": 1,
+      "satisfied_flagged": 0,
+      "payout_expected_count": 1,
+      "payout_matches_count": 1,
+      "payout_accuracy": 1.0,
+      "citations_total": 1,
+      "citations_verified": 1,
+      "citation_accuracy": 1.0,
+      "ocr_status": "ok",
+      "latency_ms": 95.11720000591595,
+      "prompt_tokens": 403,
+      "completion_tokens": 119,
+      "total_tokens": 522,
+      "failures": []
+    },
+    {
+      "packet_id": "packet_20",
+      "scenario_id": "SCENARIO_20_CONFLICTING_AMOUNTS",
+      "facts_ground_truth_count": 3,
+      "facts_extracted_count": 1,
+      "facts_matched_count": 1,
+      "fact_accuracy": 0.3333333333333333,
+      "per_fact_matches": {
+        "claim_form_summary": {
+          "matched": 1,
+          "total": 1
+        },
+        "hospital_bill_summary": {
+          "matched": 0,
+          "total": 1
+        },
+        "room_rent_billing": {
+          "matched": 0,
+          "total": 1
+        }
+      },
+      "findings_expected_count": 1,
+      "findings_actual_count": 1,
+      "status_matches": 0,
+      "status_accuracy": 0.0,
+      "violations_expected": 0,
+      "violations_detected": 0,
+      "satisfied_expected": 0,
+      "satisfied_flagged": 0,
+      "payout_expected_count": 0,
+      "payout_matches_count": 0,
+      "payout_accuracy": 1.0,
+      "citations_total": 1,
+      "citations_verified": 1,
+      "citation_accuracy": 1.0,
+      "ocr_status": "ocr_unavailable",
+      "latency_ms": 95.6364999874495,
+      "prompt_tokens": 420,
+      "completion_tokens": 130,
+      "total_tokens": 550,
+      "failures": [
+        "ocr_unavailable: hospital_bill.pdf page 1 requires OCR but Tesseract is not installed or missing 'eng.traineddata'",
+        "extraction_failure: Fact 'hospital_bill_summary' dropped because source 'hospital_bill.pdf' failed OCR",
+        "extraction_failure: Fact 'room_rent_billing' dropped because source 'hospital_bill.pdf' failed OCR",
+        "missing_fact: 'hospital_bill_summary' not found in extracted facts",
+        "missing_fact: 'room_rent_billing' not found in extracted facts",
+        "status_mismatch: rule 'RULE_ROOM_RENT_CAP' expected needs_review, got unable_to_verify"
+      ]
+    }
+  ]
+}

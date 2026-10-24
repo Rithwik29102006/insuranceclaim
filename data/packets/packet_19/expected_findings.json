@@ -1,0 +1,25 @@
+[
+  {
+    "rule_id": "RULE_WAITING_PERIOD",
+    "status": "satisfied",
+    "inputs_used": {
+      "policy_inception_date": "2026-01-01",
+      "admission_date": "2026-02-01",
+      "days_elapsed": 31,
+      "cause": "illness",
+      "diagnosis": "acute bronchitis"
+    },
+    "calculation_steps": [
+      "Calculated elapsed days from policy inception: 31 days.",
+      "Evaluated against waiting period duration: 30 days.",
+      "Day 31 is beyond the 30-day initial waiting period."
+    ],
+    "explanation": "Hospitalization occurred on day 31 following policy inception, safely after the 30-day initial waiting period.",
+    "source": {
+      "document": "synthetic_policy.pdf",
+      "page": 2,
+      "quote": "Section 2.1 (Initial Waiting Period): A mandatory waiting period of 30 days shall apply from the policy inception date. Any hospitalization or medical expenses incurred for treatment of illness during the first 30 days of coverage are strictly excluded from reimbursement, except where hospitalization is necessitated solely by an accidental injury sustained after the policy inception date."
+    },
+    "estimated_impact": 0.0
+  }
+]

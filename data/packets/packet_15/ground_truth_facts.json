@@ -1,0 +1,24 @@
+[
+  {
+    "name": "non_payable_items_breakdown",
+    "value": [
+      {
+        "item": "GLOVES!",
+        "amount": 800.0
+      },
+      {
+        "item": "Face-Masks.",
+        "amount": 600.0
+      },
+      {
+        "item": "Admission - Processing Charges",
+        "amount": 1500.0
+      }
+    ],
+    "source": {
+      "document": "hospital_bill.pdf",
+      "page": 1,
+      "quote": "Sundries breakdown: GLOVES! INR 800.00, Face-Masks. INR 600.00, Admission - Processing Charges INR 1500.00."
+    }
+  }
+]

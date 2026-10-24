@@ -1,0 +1,39 @@
+[
+  {
+    "name": "claim_form_summary",
+    "value": {
+      "claimed_amount": 50000.0,
+      "patient_name": "Rajesh Kumar"
+    },
+    "source": {
+      "document": "claim_form.pdf",
+      "page": 1,
+      "quote": "Total Reimbursement Claimed by Insured: INR 50000.00 for Patient Rajesh Kumar."
+    }
+  },
+  {
+    "name": "hospital_bill_summary",
+    "value": {
+      "billed_amount": 30000.0
+    },
+    "source": {
+      "document": "hospital_bill.pdf",
+      "page": 1,
+      "quote": "Executive Suite: 5 days @ INR 6000.00/day = Total INR 30000.00."
+    }
+  },
+  {
+    "name": "room_rent_billing",
+    "value": {
+      "room_type": "private_suite",
+      "daily_rate": 6000.0,
+      "days": 5,
+      "total_amount": 30000.0
+    },
+    "source": {
+      "document": "hospital_bill.pdf",
+      "page": 1,
+      "quote": "Executive Suite: 5 days @ INR 6000.00/day = Total INR 30000.00."
+    }
+  }
+]

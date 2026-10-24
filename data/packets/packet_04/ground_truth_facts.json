@@ -1,0 +1,17 @@
+[
+  {
+    "name": "hospitalization_details",
+    "value": {
+      "policy_inception_date": "2026-01-01",
+      "admission_date": "2026-01-15",
+      "days_elapsed": 14,
+      "cause": "illness",
+      "diagnosis": "acute appendicitis"
+    },
+    "source": {
+      "document": "discharge_summary.pdf",
+      "page": 1,
+      "quote": "Date of Admission: 15-Jan-2026. Diagnosis: Acute appendicitis. Emergency laparoscopic appendectomy performed."
+    }
+  }
+]
