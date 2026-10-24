@@ -13,7 +13,9 @@ import re
 from dotenv import load_dotenv
 from openai import OpenAI
 
-DEFAULT_BASE_URL = "https://api.tokenfactory.nebius.com/v1/"
+from src import settings
+
+DEFAULT_BASE_URL = settings.DEFAULT_NEBIUS_BASE_URL
 _THINK_BLOCK = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 
 
@@ -26,24 +28,22 @@ class NebiusResponseError(Exception):
 
 
 def get_client(api_key: str | None = None, base_url: str | None = None) -> OpenAI:
-    load_dotenv()
-    key = api_key or os.getenv("NEBIUS_API_KEY")
+    key = api_key or settings.get_nebius_api_key()
     if not key:
         raise NebiusConfigError("NEBIUS_API_KEY is not set. Add it to your .env file.")
-    return OpenAI(api_key=key, base_url=base_url or os.getenv("NEBIUS_BASE_URL") or DEFAULT_BASE_URL)
+    return OpenAI(api_key=key, base_url=base_url or settings.get_nebius_base_url())
 
 
 def get_model(kind: str = "reasoning") -> str:
-    load_dotenv()
     var = "NEBIUS_MODEL_REASONING" if kind == "reasoning" else "NEBIUS_MODEL_FAST"
-    model = os.getenv(var)
+    model = settings.get_nebius_model_reasoning() if kind == "reasoning" else settings.get_nebius_model_fast()
     if not model:
         raise NebiusConfigError(f"{var} is not set. Copy a Nemotron model ID from Token Factory into .env.")
     return model
 
 
 def parse_json_response(content: str | None) -> dict:
-    """Pull the JSON object out of a reply, ignoring <think> blocks and ``` fences."""
+    """Pull the JSON object out of a reply, ignoring <think> blocks and code fences."""
     if not content:
         raise NebiusResponseError("Model returned an empty response.")
     text = _THINK_BLOCK.sub("", content)
@@ -62,7 +62,7 @@ def chat_json(client, model: str, system: str, user: str,
     """Call the model and parse its JSON answer.
 
     Nemotron 3 models reason before answering. If the reasoning uses up the output
-    budget, the answer comes back empty with finish_reason "length"; in that case we
+    budget, the answer comes back empty with finish_reason 'length'; in that case we
     retry once with a larger budget before giving up with a clear error.
     """
     budget = max_tokens
