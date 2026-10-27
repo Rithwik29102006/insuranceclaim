@@ -93,7 +93,7 @@ h1, h2, h3, h4 { color: var(--ink); font-family: 'IBM Plex Sans', sans-serif; fo
 .cc-verdict.ok { background: var(--ok-soft); color: var(--ok); }
 .cc-verdict.cut { background: var(--cut-soft); color: var(--cut); }
 .cc-verdict.review { background: var(--review-soft); color: var(--review); }
-.cc-hero p.cc-headline { font-family: 'IBM Plex Serif', serif !important; font-weight: 500; font-size: 2.1rem !important; line-height: 1.22 !important; margin: 0 0 1.1rem; max-width: 34ch; color: var(--ink); }
+.cc-hero p.cc-headline { font-family: 'IBM Plex Serif', serif !important; font-weight: 500; font-size: 2.1rem !important; line-height: 1.22 !important; margin: 0 0 1.1rem; max-width: 46ch; color: var(--ink); }
 .cc-hero p.cc-headline b { font-weight: 600; }
 .cc-strip { display: flex; height: 18px; border-radius: 4px; overflow: hidden; background: var(--line); margin: 0.2rem 0 0.6rem; }
 .cc-strip span { display: block; height: 100%; }
@@ -476,16 +476,18 @@ def tab_timeline(result: AnalysisResult) -> None:
         import altair as alt
         import pandas as pd
         bdf = pd.DataFrame(bands)
+        rows = ["Bills"] + [b["label"] for b in bands] if points else [b["label"] for b in bands]
+        y_scale = alt.Scale(domain=rows)
         layers = [alt.Chart(bdf).mark_bar(height=26, cornerRadius=3).encode(
             x=alt.X("start:T", title=None), x2="end:T",
-            y=alt.Y("label:N", title=None, sort=["Bills"] + [b["label"] for b in bands], axis=alt.Axis(labelLimit=240)),
+            y=alt.Y("label:N", title=None, scale=y_scale, axis=alt.Axis(labelLimit=240)),
             color=alt.Color("kind:N", scale=alt.Scale(domain=["window", "stay"], range=["#CFE3F5", "#172B4D"]), legend=None),
             tooltip=["label:N", "start:T", "end:T"])]
         if points:
             pdf = pd.DataFrame(points)
             pdf["row"] = "Bills"
             layers.append(alt.Chart(pdf).mark_point(filled=True, size=140).encode(
-                x="date:T", y=alt.Y("row:N", title=None, sort=["Bills"] + [b["label"] for b in bands]),
+                x="date:T", y=alt.Y("row:N", title=None, scale=y_scale),
                 color=alt.Color("covered:N", scale=alt.Scale(domain=["Covered", "Outside the window"],
                                                              range=["#17803D", "#B42318"]), title=None),
                 tooltip=["label:N", "date:T", "covered:N"]))
