@@ -1,0 +1,64 @@
+{
+  "scenario_id": "SCENARIO_20_ROOM_RENT_PROPORTIONAL_ONLY_SURGEON_FEE",
+  "description": "Room rent exceeds cap and only surgeon fee is billed; verifies proportional deduction applies solely to professional fees without OT charges.",
+  "claim_facts": [
+    {
+      "name": "room_rent_billing",
+      "value": {
+        "room_type": "deluxe_room",
+        "daily_rate": 8000.0,
+        "days": 3,
+        "total_amount": 24000.0
+      },
+      "source": {
+        "document": "hospital_final_bill.pdf",
+        "page": 1,
+        "quote": "Room Rent: Deluxe Room at INR 8000 per day for 3 days, total INR 24000."
+      }
+    },
+    {
+      "name": "professional_fees_billing",
+      "value": {
+        "surgeon_fee": 16000.0,
+        "total_amount": 16000.0
+      },
+      "source": {
+        "document": "hospital_final_bill.pdf",
+        "page": 1,
+        "quote": "Professional Fees: Treating Surgeon fee INR 16000."
+      }
+    }
+  ],
+  "applicable_rule_ids": [
+    "RULE_ROOM_RENT_CAP"
+  ],
+  "expected_findings": [
+    {
+      "rule_id": "RULE_ROOM_RENT_CAP",
+      "status": "violated",
+      "inputs_used": {
+        "daily_rate_billed": 8000.0,
+        "days": 3,
+        "daily_cap": 5000.0,
+        "professional_fees_billed": 16000.0
+      },
+      "calculation_steps": [
+        "Step 1 (Excess Room Rent): Daily room rent billed = INR 8000.00. Policy room rent cap = INR 5000.00. Daily excess = INR 8000.00 - INR 5000.00 = INR 3000.00. For 3 days of hospitalization, excess room rent deduction = 3 days * INR 3000.00/day = INR 9000.00 (non-payable).",
+        "Step 2 (Proportional Ratio Calculation): Actual daily room rent (INR 8000.00) exceeds cap (INR 5000.00). Proportional payable ratio = 5000 / actual_daily_rate = 5000 / 8000 = 0.625 (62.5%).",
+        "Step 3 (Professional Fees Proportional Deduction): Total professional fees billed = INR 16000.00. Payable portion = INR 16000.00 * 0.62 = INR 10000.00. Disallowed deduction = INR 16000.00 - INR 10000.00 = INR 6000.00.",
+        "Step 4 (OT Charges Proportional Deduction): Total operation theatre charges billed = INR 0.00. Payable portion = INR 0.00 * 0.62 = INR 0.00. Disallowed deduction = INR 0.00 - INR 0.00 = INR 0.00.",
+        "Step 5 (Total Combined Deduction): Sum of disallowances = Excess Room Rent (INR 9000.00) + Professional Fees Deduction (INR 6000.00) + OT Charges Deduction (INR 0.00) = INR 15000.00."
+      ],
+      "explanation": "Actual daily room rent of INR 8000 exceeds the policy cap of INR 5000 per day. Excess room rent of INR 9000 is disallowed, and associated professional fees (INR 16000) and OT charges (INR 0) are reduced by 38% under the 5000 / actual daily rate proportional deduction formula, resulting in a total deterministic deduction of INR 15000.",
+      "source": {
+        "document": "synthetic_policy.pdf",
+        "page": 2,
+        "quote": "Section 2.2 (Room Rent Daily Limit and Proportional Deduction): The maximum eligible room and boarding expense covered by the insurer is INR 5000 per day of hospitalization. Any room rent charges incurred in excess of INR 5000 per day are non-payable by the insurer and shall be borne entirely by the insured person. If the actual daily room rent exceeds INR 5000, then professional fees and operation theatre charges are payable only in the ratio 5000 / actual daily rate, with the remaining balance of such charges being non-payable."
+      },
+      "estimated_impact": 15000.0
+    }
+  ],
+  "missing_information_required": false,
+  "human_review_required": false,
+  "expected_financial_impact": 15000.0
+}

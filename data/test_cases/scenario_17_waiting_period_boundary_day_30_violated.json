@@ -1,0 +1,53 @@
+{
+  "scenario_id": "SCENARIO_17_WAITING_PERIOD_BOUNDARY_DAY_30_VIOLATED",
+  "description": "Hospital admission for illness occurred on day 30 post-inception, violating the 30-day waiting period boundary.",
+  "claim_facts": [
+    {
+      "name": "hospitalization_details",
+      "value": {
+        "policy_inception_date": "2026-01-01",
+        "admission_date": "2026-01-31",
+        "days_elapsed": 30,
+        "cause": "illness",
+        "diagnosis": "acute gastroenteritis"
+      },
+      "source": {
+        "document": "discharge_summary.pdf",
+        "page": 1,
+        "quote": "Admission Date: 31-Jan-2026. Diagnosis: Acute Gastroenteritis (Illness). Inception Date: 01-Jan-2026."
+      }
+    }
+  ],
+  "applicable_rule_ids": [
+    "RULE_WAITING_PERIOD"
+  ],
+  "expected_findings": [
+    {
+      "rule_id": "RULE_WAITING_PERIOD",
+      "status": "violated",
+      "inputs_used": {
+        "policy_inception_date": "2026-01-01",
+        "admission_date": "2026-01-31",
+        "days_elapsed": 30,
+        "cause": "illness"
+      },
+      "calculation_steps": [
+        "Computed days elapsed: 30 days.",
+        "Threshold required: > 30 days.",
+        "30 <= 30 days: Admission occurred within initial waiting period.",
+        "Evaluated exception: Condition is illness, not accidental injury.",
+        "Rule violated: expenses incurred within the first 30 days for illness are excluded from coverage."
+      ],
+      "explanation": "Hospitalization for illness occurred on day 30 of the policy period, violating the mandatory 30-day initial waiting period.",
+      "source": {
+        "document": "synthetic_policy.pdf",
+        "page": 2,
+        "quote": "Section 2.1 (Initial Waiting Period): A mandatory waiting period of 30 days shall apply from the policy inception date. Any hospitalization or medical expenses incurred for treatment of illness during the first 30 days of coverage are strictly excluded from reimbursement, except where hospitalization is necessitated solely by an accidental injury sustained after the policy inception date."
+      },
+      "estimated_impact": null
+    }
+  ],
+  "missing_information_required": false,
+  "human_review_required": true,
+  "expected_financial_impact": null
+}

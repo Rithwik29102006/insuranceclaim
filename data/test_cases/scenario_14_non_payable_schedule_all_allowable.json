@@ -1,0 +1,59 @@
+{
+  "scenario_id": "SCENARIO_14_NON_PAYABLE_SCHEDULE_ALL_ALLOWABLE",
+  "description": "Itemized hospital bill contains only allowable clinical charges with zero non-payable items.",
+  "claim_facts": [
+    {
+      "name": "non_payable_items_breakdown",
+      "value": [
+        {
+          "item": "physician_consultation",
+          "amount": 2500.0
+        },
+        {
+          "item": "ultrasound",
+          "amount": 3500.0
+        },
+        {
+          "item": "medicines",
+          "amount": 4500.0
+        }
+      ],
+      "source": {
+        "document": "hospital_final_bill.pdf",
+        "page": 1,
+        "quote": "Itemized breakdown: Physician consultation INR 2500, Ultrasound investigation INR 3500, Inpatient pharmacy medicines INR 4500."
+      }
+    }
+  ],
+  "applicable_rule_ids": [
+    "RULE_NON_PAYABLE_ITEMS"
+  ],
+  "expected_findings": [
+    {
+      "rule_id": "RULE_NON_PAYABLE_ITEMS",
+      "status": "satisfied",
+      "inputs_used": {
+        "inspected_items": [
+          "{'item': 'physician_consultation', 'amount': 2500.0}",
+          "{'item': 'ultrasound', 'amount': 3500.0}",
+          "{'item': 'medicines', 'amount': 4500.0}"
+        ]
+      },
+      "calculation_steps": [
+        "Inspected billed line items against Section 3.2 non-payable schedule.",
+        "No excluded non-payable items were identified.",
+        "Reported unmatched/allowed items: physician_consultation, ultrasound, medicines."
+      ],
+      "explanation": "No excluded non-payable items were identified in the billed line items.",
+      "source": {
+        "document": "synthetic_policy.pdf",
+        "page": 3,
+        "quote": "Section 3.2 (Non-Payable Items Schedule): The following non-medical and administrative items are non-payable and strictly excluded from reimbursement: registration fees, admission processing charges, gloves, face masks, sanitizers, thermometer charges, and luxury patient amenity kits."
+      },
+      "estimated_impact": 0.0
+    }
+  ],
+  "missing_information_required": false,
+  "human_review_required": false,
+  "expected_financial_impact": 0.0
+}

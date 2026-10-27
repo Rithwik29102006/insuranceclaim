@@ -1,0 +1,52 @@
+{
+  "scenario_id": "SCENARIO_13_CATARACT_WITHIN_SUBLIMIT",
+  "description": "Cataract surgery for left eye billed at INR 35000, within the INR 40000 per-eye sub-limit.",
+  "claim_facts": [
+    {
+      "name": "surgical_expenses",
+      "value": {
+        "procedure": "cataract_surgery",
+        "eye": "left",
+        "surgeon_fee": 20000.0,
+        "ot_charges": 8000.0,
+        "lens_cost": 7000.0,
+        "total_cataract_billed": 35000.0
+      },
+      "source": {
+        "document": "hospital_final_bill.pdf",
+        "page": 1,
+        "quote": "Surgical Procedure: Left eye phacoemulsification with monofocal IOL implantation. Total Cataract Package: INR 35000."
+      }
+    }
+  ],
+  "applicable_rule_ids": [
+    "RULE_CATARACT_SUBLIMIT"
+  ],
+  "expected_findings": [
+    {
+      "rule_id": "RULE_CATARACT_SUBLIMIT",
+      "status": "satisfied",
+      "inputs_used": {
+        "procedure": "cataract_surgery",
+        "eyes_count": 1,
+        "total_billed": 35000.0,
+        "sublimit_per_eye": 40000.0
+      },
+      "calculation_steps": [
+        "Billed amount for cataract_surgery: INR 35000.00.",
+        "Policy sub-limit: INR 40000.00.",
+        "INR 35000.00 <= INR 40000.00: Billed amount is within sub-limit."
+      ],
+      "explanation": "Billed expenses of INR 35000 do not exceed the policy sub-limit of INR 40000.",
+      "source": {
+        "document": "synthetic_policy.pdf",
+        "page": 3,
+        "quote": "Section 3.1 (Sub-Limit on Cataract Surgery): Reimbursement for cataract surgery shall be subject to a strict monetary sub-limit of INR 40000 per eye, inclusive of surgeon fees, operating room charges, and intraocular lens costs. Any expenses incurred for cataract surgery in excess of INR 40000 per eye are non-payable by the insurer."
+      },
+      "estimated_impact": 0.0
+    }
+  ],
+  "missing_information_required": false,
+  "human_review_required": false,
+  "expected_financial_impact": 0.0
+}
