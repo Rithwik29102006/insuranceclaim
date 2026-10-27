@@ -71,3 +71,14 @@ def test_unticked_rule_is_not_approved(live_env):
     assert "RULE_NON_PAYABLE_ITEMS" not in at.session_state["approved_rule_ids"]
     _button(at, "Check my claim").click().run(timeout=60)
     assert _violations(at) == 0
+
+
+def test_failed_live_check_shows_error_not_a_result(live_env, monkeypatch):
+    def broken(*args, **kwargs):
+        from src.ai.nebius_client import NebiusResponseError
+        raise NebiusResponseError("Model returned invalid JSON: test")
+    monkeypatch.setattr("src.ai.claim_extractor.chat_json", broken)
+    at = _start_live(AppTest.from_file(str(APP_PATH), default_timeout=60))
+    _button(at, "Check my claim").click().run(timeout=60)
+    assert any("could not be checked" in e.value for e in at.error)
+    assert not any('class="cc-hero"' in m.value for m in at.markdown)

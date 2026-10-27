@@ -240,3 +240,30 @@ def test_compiled_ambiguity_reaches_the_engine(policy, gold, gold_text):
         (ROOT / "data" / "packets" / "packet_12" / "ground_truth_facts.json").read_text(encoding="utf-8"))]
     findings = {f.rule_id: str(getattr(f.status, "value", f.status)) for f in evaluate(result.to_rulebook(), facts)}
     assert findings["AMB_PRE_EXISTING_CONDITIONS"] == "needs_review"
+
+
+def test_missing_comma_and_trailing_comma_are_repaired():
+    from src.ai.nebius_client import parse_json_response
+    broken = '{"facts": [\n  {"name": "a", "value": 1}\n  {"name": "b", "value": [1, 2,]}\n],\n}'
+    assert parse_json_response(broken) == {"facts": [{"name": "a", "value": 1}, {"name": "b", "value": [1, 2]}]}
+
+
+def test_valid_json_is_never_rewritten():
+    from src.ai.nebius_client import parse_json_response
+    text = '{"quote": "Total: INR 1,500.00,\\n then", "x": [1]}'
+    import json as _json
+    assert parse_json_response(text) == _json.loads(text)
+
+
+def test_unrepairable_reply_is_asked_again_once():
+    from src.ai.nebius_client import chat_json
+    client = SequenceClient([('{"a": 1 "b": 2 "c"}', "stop"), ('{"ok": true}', "stop")])
+    assert chat_json(client, "m", "sys", "user") == {"ok": True}
+    assert len(client.calls) == 2 and client.calls[1]["temperature"] == 0.0
+
+
+def test_twice_invalid_reply_raises():
+    from src.ai.nebius_client import chat_json
+    client = SequenceClient([('{"a": 1 "b"}', "stop"), ('{"a": 1 "b"}', "stop")])
+    with pytest.raises(NebiusResponseError):
+        chat_json(client, "m", "sys", "user")

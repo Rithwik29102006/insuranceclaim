@@ -695,6 +695,14 @@ def main() -> None:
                  "declared. Every answer quotes the policy page it comes from.")
         return
 
+    if result.errors and not result.findings:
+        st.error("The claim could not be checked.")
+        for err in result.errors:
+            st.caption(plain(err))
+        st.write("Try **Check my claim** again. If it keeps failing, check the API key and model names in `.env`, "
+                 "or switch to Demo data to see how the results look.")
+        render_how_checked(result, inspect_configuration())
+        return
     for err in result.errors:
         st.error(err)
     render_hero(result)
