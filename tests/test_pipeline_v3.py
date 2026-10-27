@@ -93,3 +93,29 @@ def test_cashless_claim_type_drops_reimbursement_only_rules(policy_bytes):
     assert "RULE_REQ_DOCS" not in ids and "RULE_POST_HOSPITALIZATION" not in ids
     assert "RULE_CASHLESS_PREAUTH" in ids
     assert result.payout["is_estimate"] is True
+
+
+def test_waiting_period_violation_makes_claim_not_payable(gold):
+    facts = _facts(claim_amount_summary={"total_claimed": 30000},
+                   hospitalization_details={"policy_inception_date": "2026-01-01", "admission_date": "2026-01-15",
+                                            "days_elapsed": 14, "cause": "illness"})
+    payout = compute_payout(gold, facts, evaluate(gold, facts), "reimbursement")
+    assert payout["verdict"] == "rejected" and payout["payable"] == 0.0
+
+
+def test_payout_never_starts_above_the_bills(gold):
+    facts = _facts(claim_amount_summary={"total_claimed": 45000},
+                   document_details=[{"document": "hospital_bill.pdf", "document_type": "hospital_bill",
+                                      "stated_total": 43300}])
+    payout = compute_payout(gold, facts, evaluate(gold, facts), "reimbursement")
+    assert payout["payable"] == 43300.0 and payout["reduced_to_billed"] == 1700.0
+
+
+def test_document_mistake_gives_fix_documents_verdict(gold):
+    from src.engine.document_checks import run_document_checks
+    facts = _facts(claim_amount_summary={"total_claimed": 45000},
+                   document_details=[{"document": "hospital_bill.pdf", "document_type": "hospital_bill",
+                                      "stated_total": 43300}])
+    checks = run_document_checks(facts)
+    payout = compute_payout(gold, facts, evaluate(gold, facts), "reimbursement", checks)
+    assert payout["verdict"] == "fix_documents"

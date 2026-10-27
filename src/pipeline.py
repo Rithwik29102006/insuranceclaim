@@ -105,22 +105,47 @@ def _policy_number_from_text(extraction) -> Optional[str]:
     return m.group(1) if m else None
 
 
-def compute_payout(rulebook, facts: List[ClaimFact], findings: List[Finding], claim_type: str) -> Dict[str, Any]:
-    """Claimed amount minus policy deductions, capped by the remaining sum insured.
+VERDICT_TEXT = {
+    "rejected": "Not payable",
+    "incomplete": "On hold - required documents or steps missing",
+    "fix_documents": "Fix the document mistakes before submitting",
+    "needs_review": "Needs a person to review some items",
+    "approved": "Payable",
+}
 
-    The sum-insured finding is not added as a deduction; the cap is applied once, after
-    the other deductions, so nothing is counted twice.
+
+def compute_payout(rulebook, facts: List[ClaimFact], findings: List[Finding], claim_type: str,
+                   document_checks: Optional[List[Finding]] = None) -> Dict[str, Any]:
+    """Payout summary in plain terms.
+
+    - Starts from the amount claimed, but never more than the bills add up to.
+    - Subtracts policy deductions; the sum-insured cap is applied once, afterwards,
+      so nothing is counted twice.
+    - Gives one verdict: rejected (e.g. waiting period), incomplete (missing documents
+      or pre-authorisation problems), fix_documents (paperwork mistakes), needs_review,
+      or approved.
     """
+    from src.engine.coverage_rules import _dec
+    from src.engine.document_checks import _BILL_TYPES
+
+    document_checks = document_checks or []
     by_name = {f.name: f for f in facts}
     summary = by_name.get("claim_amount_summary")
-    claimed = None
-    previous = 0.0
+    claimed = previous = None
     if summary is not None and isinstance(summary.value, dict):
-        try:
-            claimed = float(summary.value.get("total_claimed")) if summary.value.get("total_claimed") is not None else None
-            previous = float(summary.value.get("previously_paid_this_year") or 0)
-        except (TypeError, ValueError):
-            claimed = None
+        c = _dec(summary.value.get("total_claimed"))
+        claimed = float(c) if c is not None else None
+        previous = float(_dec(summary.value.get("previously_paid_this_year")) or 0)
+    previous = previous or 0.0
+
+    billed = None
+    details = by_name.get("document_details")
+    if details is not None and isinstance(details.value, list):
+        totals = [_dec(e.get("stated_total")) for e in details.value
+                  if isinstance(e, dict) and str(e.get("document_type", "")).lower() in _BILL_TYPES]
+        totals = [t for t in totals if t is not None]
+        billed = float(sum(totals)) if totals else None
+
     types = {r.rule_id: _rule_type(r) for r in rulebook.rules} if rulebook else {}
     deductions = []
     for f in findings:
@@ -130,24 +155,47 @@ def compute_payout(rulebook, facts: List[ClaimFact], findings: List[Finding], cl
     total_deducted = round(sum(d["amount"] for d in deductions), 2)
     sum_insured = next((float(r.parameters.get("sum_insured_inr")) for r in (rulebook.rules if rulebook else [])
                         if _rule_type(r) == "sum_insured" and r.parameters.get("sum_insured_inr")), None)
+
+    base = claimed
+    reduced_to_billed = None
+    if claimed is not None and billed is not None and claimed > billed + 1:
+        reduced_to_billed = round(claimed - billed, 2)
+        base = billed
+
+    violated_types = {types.get(f.rule_id) for f in findings if _status(f) == "violated"}
+    if "waiting_period" in violated_types:
+        verdict = "rejected"
+    elif violated_types & {"required_documents", "cashless_preauthorization"}:
+        verdict = "incomplete"
+    elif any(_status(c) == "violated" for c in document_checks):
+        verdict = "fix_documents"
+    elif any(_status(f) == "needs_review" for f in findings) or any(_status(c) == "needs_review" for c in document_checks):
+        verdict = "needs_review"
+    else:
+        verdict = "approved"
+
     payable = capped_by = None
-    if claimed is not None:
-        payable = max(round(claimed - total_deducted, 2), 0.0)
-        if sum_insured is not None:
+    if base is not None:
+        payable = 0.0 if verdict == "rejected" else max(round(base - total_deducted, 2), 0.0)
+        if sum_insured is not None and verdict != "rejected":
             remaining = max(sum_insured - previous, 0.0)
             if payable > remaining:
                 capped_by = round(payable - remaining, 2)
                 payable = round(remaining, 2)
-    pending = [f.rule_id for f in findings if _status(f) == "needs_review"]
+
     return {
         "claim_type": claim_type,
         "claimed": claimed,
+        "billed": billed,
+        "reduced_to_billed": reduced_to_billed,
         "deductions": deductions,
         "total_deducted": total_deducted,
         "sum_insured": sum_insured,
         "capped_by_sum_insured": capped_by,
         "payable": payable,
-        "pending_review": pending,
+        "verdict": verdict,
+        "verdict_text": VERDICT_TEXT[verdict],
+        "pending_review": [f.rule_id for f in findings if _status(f) == "needs_review"],
         "is_estimate": claim_type == "cashless",
     }
 
@@ -177,7 +225,7 @@ def _adjudicate(result: "AnalysisResult", rulebook, facts: List[ClaimFact], clai
 
     result.policy_number = _policy_number_from_text(policy_extraction) or getattr(rulebook, "policy_id", None)
     result.document_checks = run_document_checks(facts, result.policy_number)
-    result.payout = compute_payout(rulebook, facts, findings, claim_type)
+    result.payout = compute_payout(rulebook, facts, findings, claim_type, result.document_checks)
 
     amb_ids = {a.ambiguity_id: a for a in getattr(rulebook, "ambiguities", [])}
     for f in findings:
