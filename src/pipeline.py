@@ -40,6 +40,7 @@ from src.documents.ocr import is_tesseract_available
 ROOT_DIR = Path(__file__).resolve().parent.parent
 GOLD_RULEBOOK_PATH = ROOT_DIR / "data" / "gold_rulebook.json"
 PACKETS_DIR = ROOT_DIR / "data" / "packets"
+DEMO_CASES_DIR = PACKETS_DIR.parent / "demo_cases"
 
 
 class AnalysisResult(BaseModel):
@@ -503,7 +504,7 @@ def analyze(
         # Determine packet ID and load ground truth facts
         t_extract_start = time.time()
         pid = packet_id or _detect_packet_id(claim_pdfs)
-        packet_dir = PACKETS_DIR / pid
+        packet_dir = PACKETS_DIR / pid if (PACKETS_DIR / pid).exists() else DEMO_CASES_DIR / pid
         facts_file = packet_dir / "ground_truth_facts.json"
 
         facts: List[ClaimFact] = []

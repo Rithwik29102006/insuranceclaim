@@ -61,6 +61,35 @@ def _name_tokens(name: Any) -> List[str]:
     return [t for t in re.split(r"[^a-z]+", str(name or "").lower()) if t and t not in _TITLES]
 
 
+_OCR_CONFUSIONS = str.maketrans({"l": "i", "1": "i", "|": "i", "0": "o", "5": "s", "8": "b"})
+
+
+def _ocr_fold(token: str) -> str:
+    """Fold characters that scanners commonly confuse (Iyer / lyer, O / 0)."""
+    return token.translate(_OCR_CONFUSIONS)
+
+
+def _one_edit_apart(a: str, b: str) -> bool:
+    if abs(len(a) - len(b)) > 1:
+        return False
+    if len(a) == len(b):
+        return sum(x != y for x, y in zip(a, b)) == 1
+    short, long_ = (a, b) if len(a) < len(b) else (b, a)
+    return any(long_[:i] + long_[i + 1:] == short for i in range(len(long_)))
+
+
+def _names_relation(ref: List[str], toks: List[str]) -> str:
+    """'same', 'similar' (likely the same person, please confirm) or 'different'."""
+    fr, ft = [_ocr_fold(t) for t in ref], [_ocr_fold(t) for t in toks]
+    if fr == ft:
+        return "same"
+    if set(ft) <= set(fr) or set(fr) <= set(ft):
+        return "similar"            # e.g. "Priya Patel" vs "Priya S Patel"
+    if len(fr) == len(ft) and all(a == b or _one_edit_apart(a, b) for a, b in zip(fr, ft)):
+        return "similar"            # one-letter slip, e.g. "Iyer" vs "Iyar"
+    return "different"
+
+
 def _norm_policy(num: Any) -> str:
     return re.sub(r"[^A-Z0-9]", "", str(num or "").upper())
 
@@ -74,11 +103,10 @@ def check_patient_name(entries: List[dict], fallback: Optional[SourceRef]) -> Op
     ref_entry, ref = named[0]
     hard, soft = [], []
     for e, toks in named[1:]:
-        if toks == ref:
-            continue
-        if set(toks) <= set(ref) or set(ref) <= set(toks):
-            soft.append(e)       # e.g. "Priya Patel" vs "Priya S Patel"
-        else:
+        relation = _names_relation(ref, toks)
+        if relation == "similar":
+            soft.append(e)
+        elif relation == "different":
             hard.append(e)
     inputs = {e.get("document"): e.get("patient_name") for e, _ in named}
     if hard:

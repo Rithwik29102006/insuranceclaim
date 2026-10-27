@@ -103,3 +103,16 @@ def test_checks_without_data_are_skipped():
     assert run_document_checks([], POLICY) == []
     only_one = _checks(GOOD_DOCS[:1], claimed=None)
     assert "CHECK_PATIENT_NAME" not in only_one  # needs at least two documents
+
+
+def test_ocr_confusion_in_name_is_not_a_mistake():
+    docs = copy.deepcopy(GOOD_DOCS)
+    for d in docs:
+        d["patient_name"] = "Suresh Iyer"
+    docs[2]["patient_name"] = "Suresh lyer"   # scanner read I as l
+    assert _status(_checks(docs)["CHECK_PATIENT_NAME"]) == "satisfied"
+
+
+def test_one_letter_slip_asks_to_confirm():
+    docs = copy.deepcopy(GOOD_DOCS); docs[2]["patient_name"] = "Priya Patil"
+    assert _status(_checks(docs)["CHECK_PATIENT_NAME"]) == "needs_review"
