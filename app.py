@@ -84,7 +84,7 @@ CSS = """
 }
 html, body, [class*="css"], .stMarkdown, .stText, button, input, label { font-family: 'IBM Plex Sans', sans-serif; }
 .stApp { background: var(--paper); color: var(--ink); }
-.block-container { max-width: 1120px; padding-top: 2rem; }
+.block-container { max-width: 1120px; padding-top: 3.6rem; }
 h1, h2, h3, h4 { color: var(--ink); font-family: 'IBM Plex Sans', sans-serif; font-weight: 600; letter-spacing: 0; }
 .cc-brand { font-weight: 600; font-size: 1.05rem; color: var(--ink); margin-bottom: 0; }
 .cc-sub { color: var(--muted); font-size: 0.9rem; margin-top: 0.1rem; }
@@ -93,8 +93,8 @@ h1, h2, h3, h4 { color: var(--ink); font-family: 'IBM Plex Sans', sans-serif; fo
 .cc-verdict.ok { background: var(--ok-soft); color: var(--ok); }
 .cc-verdict.cut { background: var(--cut-soft); color: var(--cut); }
 .cc-verdict.review { background: var(--review-soft); color: var(--review); }
-.cc-headline { font-family: 'IBM Plex Serif', serif; font-weight: 500; font-size: 2rem; line-height: 1.25; margin: 0 0 1rem; max-width: 30ch; }
-.cc-headline b { font-weight: 600; }
+.cc-hero p.cc-headline { font-family: 'IBM Plex Serif', serif !important; font-weight: 500; font-size: 2.1rem !important; line-height: 1.22 !important; margin: 0 0 1.1rem; max-width: 34ch; color: var(--ink); }
+.cc-hero p.cc-headline b { font-weight: 600; }
 .cc-strip { display: flex; height: 18px; border-radius: 4px; overflow: hidden; background: var(--line); margin: 0.2rem 0 0.6rem; }
 .cc-strip span { display: block; height: 100%; }
 .cc-strip .pay { background: var(--ok); }
@@ -198,6 +198,37 @@ def display_status(f: Finding, result: AnalysisResult) -> Tuple[str, str]:
     return STATUS_WORDS.get(s, (s, "muted"))
 
 
+def plain(text: str) -> str:
+    """Show money the way people read it: INR 6,500.00 -> \u20b96,500."""
+    import re as _re
+
+    def fmt(m):
+        value = float(m.group(1).replace(",", ""))
+        return inr(value)
+
+    return _re.sub(r"INR\s*([\d,]+(?:\.\d+)?)", fmt, text)
+
+
+def explain(f: Finding, result: AnalysisResult) -> str:
+    """Everyday-language explanation; the original wording stays in the proof."""
+    import re as _re
+    amb = next((a for a in result.ambiguities if a.ambiguity_id == f.rule_id), None)
+    if amb is not None:
+        return (f"{amb.section} of the policy is unclear: {amb.issue[0].lower() + amb.issue[1:]}. This claim mentions a "
+                "related medical history, so a claims officer has to decide how that section applies.")
+    if rule_types(result).get(f.rule_id) == "room_rent_cap" and status_of(f) == "violated":
+        m = _re.search(r"room rent of INR\s*([\d,.]+) exceeds the policy cap of INR\s*([\d,.]+)", f.explanation)
+        if m:
+            rate, cap = float(m.group(1).replace(",", "")), float(m.group(2).replace(",", ""))
+            text = (f"The room cost {inr(rate)} a day but the policy covers {inr(cap)} a day, so you pay the extra "
+                    "room rent.")
+            if "proportional" in f.explanation.lower():
+                text += (f" Because the room was above the limit, the policy also pays only {cap / rate * 100:.1f}% of "
+                         "the doctor and operation theatre fees.")
+            return text + f" In total {inr(f.estimated_impact)} is not covered."
+    return plain(f.explanation)
+
+
 def find_doc_bytes(name: str) -> bytes:
     if name == "synthetic_policy.pdf" or "policy" in name.lower() and name not in st.session_state.claim_pdfs:
         return st.session_state.policy_bytes
@@ -233,8 +264,10 @@ def result_row(f: Finding, result: AnalysisResult, key: str, expanded: bool = Fa
         status_of(f) == "violated" and f.estimated_impact) else ""
     st.markdown(f"<div class='cc-row'><span><b>{rule_title(f.rule_id, result)}</b></span>"
                 f"<span class='cc-status {tone}'>{word}{amount}</span></div>", unsafe_allow_html=True)
-    st.write(f.explanation)
+    st.write(explain(f, result))
     with st.expander("See the proof", expanded=expanded):
+        if explain(f, result) != plain(f.explanation):
+            st.caption(plain(f.explanation))
         render_proof(f, key)
 
 
@@ -307,7 +340,7 @@ def render_hero(result: AnalysisResult) -> None:
     if claimed and payable is not None and verdict != "rejected":
         base = claimed
         segments += f'<span class="pay" style="width:{max(payable, 0) / base * 100:.2f}%"></span>'
-        legend += f'<span><i style="background:var(--ok)"></i>Paid {inr(payable)}</span>'
+        legend += f'<span><i style="background:var(--ok)"></i>{"Approved" if estimate else "Paid"} {inr(payable)}</span>'
         for d in p.get("deductions", []):
             segments += f'<span class="cut" style="width:{d["amount"] / base * 100:.2f}%"></span>'
             legend += f'<span><i style="background:var(--cut)"></i>{rule_title(d["rule_id"], result)}: {inr(d["amount"])}</span>'
@@ -334,14 +367,16 @@ def render_todo(result: AnalysisResult) -> None:
     missing = [f for f in result.findings if status_of(f) == "unable_to_verify"
                and f.rule_id not in result.not_applicable_rule_ids]
     if not (mistakes or blocking or review or missing):
-        st.markdown('<div class="cc-todo ok"><h4>Nothing for you to do</h4>Every check that applies to this claim '
-                    'passed.</div>', unsafe_allow_html=True)
+        has_cuts = bool((result.payout or {}).get("total_deducted"))
+        body = ("Nothing to fix in your documents. The deductions above follow the policy rules; see why below."
+                if has_cuts else "Every check that applies to this claim passed.")
+        st.markdown(f'<div class="cc-todo ok"><h4>No action needed</h4>{body}</div>', unsafe_allow_html=True)
         return
     items = []
-    items += [f"<li><b>Fix:</b> {c.explanation}</li>" for c in mistakes]
-    items += [f"<li><b>{rule_title(f.rule_id, result)}:</b> {f.explanation}</li>" for f in blocking]
-    items += [f"<li><b>Review:</b> {f.explanation}</li>" for f in review]
-    items += [f"<li><b>Missing information:</b> {rule_title(f.rule_id, result)}. {f.explanation}</li>" for f in missing]
+    items += [f"<li><b>Fix:</b> {plain(c.explanation)}</li>" for c in mistakes]
+    items += [f"<li><b>{rule_title(f.rule_id, result)}:</b> {explain(f, result)}</li>" for f in blocking]
+    items += [f"<li><b>Review:</b> {explain(f, result) if f.rule_id in rule_types(result) or f.rule_id.startswith('AMB') else plain(f.explanation)}</li>" for f in review]
+    items += [f"<li><b>Missing information:</b> {rule_title(f.rule_id, result)}. {plain(f.explanation)}</li>" for f in missing]
     tone = "cut" if (mistakes or blocking) else ""
     st.markdown(f'<div class="cc-todo {tone}"><h4>What needs attention</h4><ul>{"".join(items)}</ul></div>',
                 unsafe_allow_html=True)
@@ -374,7 +409,7 @@ def tab_mistakes(result: AnalysisResult) -> None:
                       "satisfied": ("No problem", "ok")}.get(status_of(c), (status_of(c), "muted"))
         st.markdown(f"<div class='cc-row'><span><b>{CHECK_LABELS.get(c.rule_id, c.rule_id)}</b></span>"
                     f"<span class='cc-status {tone}'>{word}</span></div>", unsafe_allow_html=True)
-        st.write(c.explanation)
+        st.write(plain(c.explanation))
         with st.expander("See the details"):
             render_proof(c, f"chk{i}")
         st.markdown("---")
@@ -422,10 +457,11 @@ def tab_timeline(result: AnalysisResult) -> None:
     post = next((int(r.parameters.get("window_days", 60)) for r in rules
                  if str(getattr(r.rule_type, "value", r.rule_type)) == "post_hospitalization"), 60)
     end = dis or adm
-    bands = [{"label": f"Covered: {pre} days before admission", "start": adm - timedelta(days=pre), "end": adm, "kind": "window"},
+    bands = [{"label": f"{pre} days before admission", "start": adm - timedelta(days=pre), "end": adm, "kind": "window"},
              {"label": "In hospital", "start": adm, "end": end + timedelta(days=1), "kind": "stay"}]
     if dis:
-        bands.append({"label": f"Covered: {post} days after discharge", "start": dis, "end": dis + timedelta(days=post), "kind": "window"})
+        bands.append({"label": f"{post} days after discharge", "start": dis, "end": dis + timedelta(days=post), "kind": "window"})
+    st.caption("Bills inside the shaded windows are covered. Green dots are covered bills, red dots fall outside.")
     points = []
     for name, sign in (("pre_hospitalization_expenses", -1), ("post_hospitalization_expenses", 1)):
         fact = facts.get(name)
@@ -441,24 +477,26 @@ def tab_timeline(result: AnalysisResult) -> None:
         import pandas as pd
         bdf = pd.DataFrame(bands)
         layers = [alt.Chart(bdf).mark_bar(height=26, cornerRadius=3).encode(
-            x=alt.X("start:T", title=None), x2="end:T", y=alt.Y("label:N", title=None, sort=None),
+            x=alt.X("start:T", title=None), x2="end:T",
+            y=alt.Y("label:N", title=None, sort=["Bills"] + [b["label"] for b in bands], axis=alt.Axis(labelLimit=240)),
             color=alt.Color("kind:N", scale=alt.Scale(domain=["window", "stay"], range=["#CFE3F5", "#172B4D"]), legend=None),
             tooltip=["label:N", "start:T", "end:T"])]
         if points:
             pdf = pd.DataFrame(points)
             pdf["row"] = "Bills"
             layers.append(alt.Chart(pdf).mark_point(filled=True, size=140).encode(
-                x="date:T", y=alt.Y("row:N", title=None),
+                x="date:T", y=alt.Y("row:N", title=None, sort=["Bills"] + [b["label"] for b in bands]),
                 color=alt.Color("covered:N", scale=alt.Scale(domain=["Covered", "Outside the window"],
                                                              range=["#17803D", "#B42318"]), title=None),
                 tooltip=["label:N", "date:T", "covered:N"]))
-        st.altair_chart(alt.layer(*layers).properties(height=60 * (len(bands) + (1 if points else 0))),
+        st.altair_chart(alt.layer(*layers).resolve_scale(color="independent")
+                        .properties(height=60 * (len(bands) + (1 if points else 0))),
                         width="stretch")
     except Exception:
         for b in bands:
             st.write(f"{b['label']}: {b['start']} to {b['end']}")
     for pt in sorted(points, key=lambda x: x["date"]):
-        st.write(f"{pt['date']}: {pt['label']} - {pt['covered'].lower()}")
+        st.write(f"{pt['date'].strftime('%d %b %Y')}: {pt['label']} - {pt['covered'].lower()}")
 
 
 def tab_all_rules(result: AnalysisResult) -> None:

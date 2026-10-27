@@ -146,9 +146,8 @@ def _evaluate_window(rule: Rule, facts: Dict[str, ClaimFact], *, before: bool) -
     if outside > 0:
         steps.append(f"Total outside the window: {_money(outside)}.")
         return _finding(rule, FindingStatus.VIOLATED, inputs, steps,
-                        f"{', '.join(outside_names)} {'was' if len(outside_names) == 1 else 'were'} billed more than "
-                        f"{int(window)} days {'before admission' if before else 'after discharge'}, so "
-                        f"{_money(outside)} is not covered.", outside)
+                        f"Billed more than {int(window)} days {'before admission' if before else 'after discharge'}: "
+                        f"{', '.join(outside_names)}. {_money(outside)} is not covered.", outside)
     if undated:
         return _finding(rule, FindingStatus.NEEDS_REVIEW, inputs, steps,
                         f"Some {label} expenses ({', '.join(undated)}) have no usable date, so a person must check "

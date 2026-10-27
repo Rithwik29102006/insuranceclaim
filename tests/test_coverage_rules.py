@@ -41,7 +41,7 @@ def test_pre_hospitalization_outside_window_is_deducted(gold):
         {"description": "MRI scan", "amount": 6500, "date": "2026-01-20"},
         {"description": "Consultation", "amount": 800, "date": "2026-03-01"}]})
     assert st == "violated" and f.estimated_impact == 6500.0
-    assert "MRI scan" in f.explanation
+    assert "MRI scan" in f.explanation and "Billed more than 30 days" in f.explanation
 
 
 def test_pre_hospitalization_day_30_is_inside(gold):
