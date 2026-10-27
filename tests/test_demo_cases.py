@@ -23,8 +23,8 @@ def _status(f):
     return str(getattr(f.status, "value", f.status))
 
 
-def test_seven_demo_cases_exist():
-    assert len(CASES) == 7
+def test_nine_demo_cases_exist():
+    assert len(CASES) == 9
 
 
 @pytest.mark.parametrize("case", CASES, ids=lambda p: p.name)

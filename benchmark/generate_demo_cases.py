@@ -429,7 +429,184 @@ def case_27() -> Case:
     return c
 
 
-ALL_CASES = [case_21, case_22, case_23, case_24, case_25, case_26, case_27]
+def case_28() -> Case:
+    c = Case("case_28_full_reimbursement_all_documents", "Reimbursement - complete set of 10 documents", "reimbursement",
+             "Gallbladder surgery with every document type: a deluxe room above the limit, gloves and masks on the "
+             "pharmacy bill, and an undeclared thyroid condition that only shows up in the prescription.",
+             "Lakshmi Menon", "CLM-2026-0828")
+    adm, dis = "2026-08-02", "2026-08-06"
+    q_docs = "Documents enclosed: Claim Form, Hospital Bill, Discharge Summary, Pharmacy Bill, Prescription, Reports."
+    q_decl = "Existing medical conditions declared by the insured: Hypertension."
+    q_claim = "Total amount claimed: INR 1,24,600.00."
+    c.doc("claim_form.pdf", "HEALTH INSURANCE REIMBURSEMENT CLAIM FORM", "Claim Form",
+          [q_docs, f"Date of admission: {adm}. Date of discharge: {dis}.", q_decl, q_claim,
+           "Bank account for reimbursement: XXXX XXXX 4417 (fictional)."],
+          detail={"document_type": "claim_form", "admission_date": adm, "discharge_date": dis})
+    q_room = "Room rent (Deluxe room): 4 days @ INR 6250.00/day = INR 25000.00."
+    q_fees = "Professional fees: Surgeon INR 40000, Anaesthetist INR 10000. Total INR 50000.00."
+    q_ot = "Operation theatre charges: INR 25000.00."
+    items = [("Room rent (Deluxe room)", 25000), ("Surgeon fee", 40000), ("Anaesthetist fee", 10000),
+             ("Operation theatre charges", 25000), ("Nursing charges", 4000), ("Laboratory investigations", 3500)]
+    c.doc("hospital_bill.pdf", "ST. ANNE'S HOSPITAL - FINAL ITEMISED BILL", "Hospital Bill",
+          [f"Admitted: {adm} | Discharged: {dis}", q_room, q_fees, q_ot, "Nursing charges: INR 4000.00.",
+           "Laboratory investigations: INR 3500.00.", "Total bill amount: INR 107500.00."],
+          detail={"document_type": "hospital_bill", "admission_date": adm, "discharge_date": dis,
+                  "stated_total": 107500, "line_items": [{"item": i, "amount": a} for i, a in items]})
+    q_gloves = "Gloves (surgical, 2 boxes): INR 600.00."
+    q_masks = "Face masks (N95, 10 pieces): INR 400.00."
+    c.doc("pharmacy_bill.pdf", "ST. ANNE'S IN-HOUSE PHARMACY - BILL", "Pharmacy Bill",
+          ["Medicines and IV fluids during stay: INR 9800.00.", q_gloves, q_masks, "Total: INR 10800.00."],
+          detail={"document_type": "pharmacy_bill", "stated_total": 10800,
+                  "line_items": [{"item": "Medicines and IV fluids", "amount": 9800},
+                                 {"item": "Gloves", "amount": 600}, {"item": "Face masks", "amount": 400}]})
+    q_rx = "Continue long-term: Tab Amlodipine 5 mg once daily and Tab Thyroxine 50 mcg once daily before breakfast."
+    c.doc("prescription.pdf", "PRESCRIPTION - MEDICINES AT DISCHARGE", "Prescription",
+          ["Rx: Tab Pantoprazole 40 mg once daily for 14 days. Tab Paracetamol 650 mg when required.", q_rx],
+          detail={"document_type": "prescription"})
+    c.doc("lab_report.pdf", "LABORATORY REPORT", "Lab Report",
+          ["Liver function: total bilirubin 1.9 mg/dL (high), ALP 210 U/L (high).",
+           "TSH: 6.2 mIU/L (on treatment)."], detail={"document_type": "lab_report"})
+    q_usg = "Ultrasound abdomen (28-Jul-2026): multiple gallstones with a thickened gallbladder wall."
+    c.doc("scan_report.pdf", "RADIOLOGY REPORT - ULTRASOUND", "Scan Report",
+          [q_usg, "Impression: acute calculous cholecystitis."], detail={"document_type": "scan_report"})
+    q_dx = "Diagnosis: Acute calculous cholecystitis, laparoscopic cholecystectomy performed. Cause: illness."
+    q_hist = "Past medical history: Hypertension for 3 years on Amlodipine."
+    c.doc("discharge_summary.pdf", "DISCHARGE SUMMARY", "Discharge Summary",
+          [f"Date of admission: {adm}. Date of discharge: {dis}.", q_dx, q_hist, "Condition at discharge: Stable."],
+          detail={"document_type": "discharge_summary", "admission_date": adm, "discharge_date": dis})
+    q_pre1 = "27-Jul-2026: Surgeon consultation: INR 800.00."
+    q_pre2 = "28-Jul-2026: Ultrasound abdomen: INR 2500.00."
+    c.doc("pre_hospitalisation_bill.pdf", "BILLS BEFORE ADMISSION", "Pre-Hospitalisation Bill",
+          [q_pre1, q_pre2, "Total: INR 3300.00."],
+          detail={"document_type": "pre_hospitalization_bill", "stated_total": 3300,
+                  "line_items": [{"item": "Surgeon consultation", "amount": 800}, {"item": "Ultrasound abdomen", "amount": 2500}]})
+    q_post1 = "20-Aug-2026: Follow-up consultation: INR 900.00."
+    q_post2 = "20-Aug-2026: Wound dressing: INR 600.00."
+    c.doc("post_hospitalisation_bill.pdf", "BILLS AFTER DISCHARGE", "Post-Hospitalisation Bill",
+          [q_post1, q_post2, "Total: INR 1500.00."],
+          detail={"document_type": "post_hospitalization_bill", "stated_total": 1500,
+                  "line_items": [{"item": "Follow-up consultation", "amount": 900}, {"item": "Wound dressing", "amount": 600}]})
+    q_amb = "Road ambulance from residence to St. Anne's Hospital on 02-Aug-2026: INR 1500.00."
+    c.doc("ambulance_bill.pdf", "CITY AMBULANCE SERVICE - RECEIPT", "Ambulance Bill", [q_amb, "Total: INR 1500.00."],
+          detail={"document_type": "ambulance_bill", "stated_total": 1500,
+                  "line_items": [{"item": "Road ambulance", "amount": 1500}]})
+    c.fact("submitted_documents", ["claim_form", "hospital_bill", "discharge_summary"], "claim_form.pdf", q_docs)
+    c.fact("hospitalization_details", {"policy_inception_date": INCEPTION, "admission_date": adm, "discharge_date": dis,
+                                       "days_elapsed": 213, "cause": "illness",
+                                       "diagnosis": "acute calculous cholecystitis"}, "discharge_summary.pdf", q_dx)
+    c.fact("room_rent_billing", {"room_type": "deluxe_room", "daily_rate": 6250.0, "days": 4, "total_amount": 25000.0},
+           "hospital_bill.pdf", q_room)
+    c.fact("professional_fees_billing", {"surgeon_fee": 40000.0, "anesthetist_fee": 10000.0, "total_amount": 50000.0},
+           "hospital_bill.pdf", q_fees)
+    c.fact("operation_theatre_billing", {"ot_charges": 25000.0, "total_amount": 25000.0}, "hospital_bill.pdf", q_ot)
+    c.fact("non_payable_items_breakdown", [{"item": "gloves", "amount": 600.0}, {"item": "face_masks", "amount": 400.0}],
+           "pharmacy_bill.pdf", q_gloves)
+    c.fact("pre_hospitalization_expenses", [{"description": "Surgeon consultation", "amount": 800.0, "date": "2026-07-27"},
+                                            {"description": "Ultrasound abdomen", "amount": 2500.0, "date": "2026-07-28"}],
+           "pre_hospitalisation_bill.pdf", q_pre2)
+    c.fact("post_hospitalization_expenses", [{"description": "Follow-up consultation", "amount": 900.0, "date": "2026-08-20"},
+                                             {"description": "Wound dressing", "amount": 600.0, "date": "2026-08-20"}],
+           "post_hospitalisation_bill.pdf", q_post1)
+    c.fact("ambulance_charges", {"amount": 1500.0}, "ambulance_bill.pdf", q_amb)
+    c.fact("claim_amount_summary", {"total_claimed": 124600.0, "previously_paid_this_year": 0.0}, "claim_form.pdf", q_claim)
+    c.fact("declared_conditions", {"conditions": ["Hypertension"]}, "claim_form.pdf", q_decl)
+    c.fact("medical_conditions_found", [
+        {"condition": "Hypertension", "evidence": "Hypertension for 3 years on Amlodipine",
+         "inferred_from_medicine": False, "document": "discharge_summary.pdf"},
+        {"condition": "Hypothyroidism", "evidence": "Tab Thyroxine 50 mcg long-term; TSH on treatment",
+         "inferred_from_medicine": True, "document": "prescription.pdf"}], "prescription.pdf", q_rx)
+    c.fact("patient_medical_history", {"diagnosis": "hypertension", "pre_existing_history": "Hypertension for 3 years",
+                                       "hospitalization_cause": "acute calculous cholecystitis", "claimed_amount": 124600.0},
+           "discharge_summary.pdf", q_hist)
+    c.finish_details("claim_form.pdf")
+    # Room: 4 x (6250-5000) = 5000; ratio 5000/6250 = 0.8 -> 20% of fees (50000) and OT (25000) disallowed
+    c.expected_rules = {"RULE_REQ_DOCS": ["satisfied", 0.0], "RULE_WAITING_PERIOD": ["satisfied", 0.0],
+                        "RULE_ROOM_RENT_CAP": ["violated", 20000.0], "RULE_NON_PAYABLE_ITEMS": ["violated", 1000.0],
+                        "RULE_PRE_HOSPITALIZATION": ["satisfied", 0.0], "RULE_POST_HOSPITALIZATION": ["satisfied", 0.0],
+                        "RULE_AMBULANCE_LIMIT": ["satisfied", 0.0], "RULE_SUM_INSURED": ["satisfied", 0.0],
+                        "RULE_PRE_EXISTING_DISCLOSURE": ["needs_review", None],
+                        "AMB_PRE_EXISTING_CONDITIONS": ["needs_review", None]}
+    c.expected_checks = {k: "satisfied" for k in ("CHECK_PATIENT_NAME", "CHECK_POLICY_NUMBER", "CHECK_DATES",
+                                                  "CHECK_BILL_ARITHMETIC", "CHECK_CLAIMED_VS_BILLED",
+                                                  "CHECK_DUPLICATE_CHARGES")}
+    c.expected_verdict, c.expected_payable = "needs_review", 103600.0
+    return c
+
+
+def case_29() -> Case:
+    c = Case("case_29_full_cashless_emergency_accident", "Cashless - emergency accident, complete set of 6 documents",
+             "cashless",
+             "Road accident on day 20 of the policy: emergency cashless request sent the next morning, with reports. "
+             "INR 3.8 lakh was already paid this year, so the approval is limited by the remaining sum insured.",
+             "Vikram Singh", "PA-2026-0129")
+    q_type = "Type of admission: Emergency. Admitted: 21-Jan-2026 22:30."
+    q_sent = "Request submitted to insurer on: 22-Jan-2026 09:00."
+    q_encl = "Enclosed: Pre-Authorisation Form, Treating Doctor's Cost Estimate, X-ray Report, Lab Report."
+    q_decl = "Existing medical conditions declared by the insured: None."
+    q_paid = "Claims already paid under this policy this year: INR 380000.00."
+    c.doc("preauthorisation_form.pdf", "CASHLESS PRE-AUTHORISATION REQUEST", "Pre-Authorisation Form",
+          [q_type, q_sent, q_encl, q_decl, q_paid,
+           "Proposed treatment: Open reduction and internal fixation of left femur fracture."],
+          detail={"document_type": "preauthorization_form", "admission_date": "2026-01-21"})
+    q_room = "General ward: 5 days @ INR 4500.00/day = INR 22500.00."
+    q_fees = "Professional fees: Orthopaedic surgeon INR 35000, Anaesthetist INR 9000. Total INR 44000.00."
+    q_ot = "Operation theatre charges: INR 28000.00."
+    q_np = "Registration fees: INR 500.00. Thermometer charges: INR 300.00."
+    q_amb_est = "Ambulance from accident site: INR 2500.00."
+    q_total = "Total estimated cost: INR 151800.00."
+    items = [("General ward", 22500), ("Orthopaedic surgeon fee", 35000), ("Anaesthetist fee", 9000),
+             ("Operation theatre charges", 28000), ("Implant (plate and screws)", 42000),
+             ("Pharmacy and consumables", 12000), ("Registration fees", 500), ("Thermometer charges", 300),
+             ("Ambulance from accident site", 2500)]
+    c.doc("cost_estimate.pdf", "TREATING DOCTOR'S COST ESTIMATE", "Cost Estimate",
+          [q_room, q_fees, q_ot, "Implant (plate and screws): INR 42000.00.", "Pharmacy and consumables: INR 12000.00.",
+           q_np, q_amb_est, q_total],
+          detail={"document_type": "cost_estimate", "stated_total": 151800,
+                  "line_items": [{"item": i, "amount": a} for i, a in items]})
+    q_dx = "Diagnosis: Closed fracture of left femur after a road traffic accident on 21-Jan-2026. Cause: accidental injury."
+    c.doc("doctor_referral_letter.pdf", "EMERGENCY DEPARTMENT - REFERRAL FOR SURGERY", "Doctor's Letter",
+          [q_dx, "Advised: urgent surgical fixation within 24 hours. No known chronic illness."],
+          detail={"document_type": "other"})
+    c.doc("xray_report.pdf", "RADIOLOGY REPORT - X-RAY", "Scan Report",
+          ["X-ray left thigh (21-Jan-2026): displaced mid-shaft fracture of the left femur."],
+          detail={"document_type": "scan_report"})
+    c.doc("lab_report.pdf", "LABORATORY REPORT", "Lab Report",
+          ["Haemoglobin 11.2 g/dL. Blood sugar (random) 104 mg/dL. Coagulation profile normal."],
+          detail={"document_type": "lab_report"})
+    q_amb = "Road ambulance from accident site to Highway Trauma Hospital on 21-Jan-2026: INR 2500.00."
+    c.doc("ambulance_bill.pdf", "HIGHWAY AMBULANCE - RECEIPT", "Ambulance Bill", [q_amb],
+          detail={"document_type": "other"})
+    c.fact("preauthorization_request", {"hospitalization_type": "emergency",
+                                        "documents_present": ["preauthorization_form", "cost_estimate", "scan_report",
+                                                              "lab_report"],
+                                        "request_datetime": "2026-01-22T09:00", "admission_datetime": "2026-01-21T22:30"},
+           "preauthorisation_form.pdf", q_sent)
+    c.fact("hospitalization_details", {"policy_inception_date": INCEPTION, "admission_date": "2026-01-21",
+                                       "days_elapsed": 20, "cause": "accidental_injury",
+                                       "diagnosis": "closed fracture of left femur"}, "doctor_referral_letter.pdf", q_dx)
+    c.fact("room_rent_billing", {"room_type": "general_ward", "daily_rate": 4500.0, "days": 5, "total_amount": 22500.0},
+           "cost_estimate.pdf", q_room)
+    c.fact("professional_fees_billing", {"surgeon_fee": 35000.0, "anesthetist_fee": 9000.0, "total_amount": 44000.0},
+           "cost_estimate.pdf", q_fees)
+    c.fact("operation_theatre_billing", {"ot_charges": 28000.0, "total_amount": 28000.0}, "cost_estimate.pdf", q_ot)
+    c.fact("non_payable_items_breakdown", [{"item": "registration_fees", "amount": 500.0},
+                                           {"item": "thermometer_charges", "amount": 300.0}], "cost_estimate.pdf", q_np)
+    c.fact("ambulance_charges", {"amount": 2500.0}, "ambulance_bill.pdf", q_amb)
+    c.fact("claim_amount_summary", {"total_claimed": 151800.0, "previously_paid_this_year": 380000.0},
+           "preauthorisation_form.pdf", q_paid)
+    c.fact("declared_conditions", {"conditions": []}, "preauthorisation_form.pdf", q_decl)
+    c.finish_details("preauthorisation_form.pdf")
+    # Deductions 800 (non-payable) + 500 (ambulance over 2000) -> 150500; remaining sum insured 120000 caps it.
+    c.expected_rules = {"RULE_CASHLESS_PREAUTH": ["satisfied", None], "RULE_WAITING_PERIOD": ["satisfied", 0.0],
+                        "RULE_ROOM_RENT_CAP": ["satisfied", 0.0], "RULE_NON_PAYABLE_ITEMS": ["violated", 800.0],
+                        "RULE_AMBULANCE_LIMIT": ["violated", 500.0], "RULE_SUM_INSURED": ["violated", 31800.0],
+                        "RULE_PRE_EXISTING_DISCLOSURE": ["satisfied", 0.0]}
+    c.expected_checks = {"CHECK_BILL_ARITHMETIC": "satisfied"}
+    c.expected_verdict, c.expected_payable = "approved", 120000.0
+    return c
+
+
+ALL_CASES = [case_21, case_22, case_23, case_24, case_25, case_26, case_27, case_28, case_29]
 
 
 def write_case(c: Case, out_dir: Path = DEMO_DIR) -> Path:
