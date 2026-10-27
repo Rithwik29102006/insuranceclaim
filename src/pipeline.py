@@ -112,6 +112,7 @@ VERDICT_TEXT = {
     "fix_documents": "Fix the document mistakes before submitting",
     "needs_review": "Needs a person to review some items",
     "approved": "Payable",
+    "no_amount": "Rules checked - no claim amount found in the documents",
 }
 
 
@@ -173,7 +174,7 @@ def compute_payout(rulebook, facts: List[ClaimFact], findings: List[Finding], cl
     elif any(_status(f) == "needs_review" for f in findings) or any(_status(c) == "needs_review" for c in document_checks):
         verdict = "needs_review"
     else:
-        verdict = "approved"
+        verdict = "approved" if base is not None else "no_amount"
 
     payable = capped_by = None
     if base is not None:
