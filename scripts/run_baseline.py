@@ -1,6 +1,8 @@
 """Live baseline run: policy compiler + claim extractor against ground truth.
 
-Usage:  python scripts/run_baseline.py
+Usage:  python scripts/run_baseline.py [output_folder]
+        (default output folder: evaluation/baseline; use a new folder for later runs,
+        e.g. evaluation/after_fixes, so the original baseline is never overwritten)
 
 Makes real Nebius Token Factory calls (1 compile + 3 claim extractions, plus any
 automatic retries). Nothing in the compiler, extractor or gold data is changed:
@@ -40,7 +42,8 @@ from src.documents.ocr import is_tesseract_available  # noqa: E402
 from src.documents.policy_document import load_document  # noqa: E402
 from src.schemas import Rulebook  # noqa: E402
 
-OUT = ROOT / "evaluation" / "baseline"
+OUT = ROOT / (sys.argv[1] if len(sys.argv) > 1 else "evaluation/baseline")
+RUN_TAG = "live" if OUT.name == "baseline" else OUT.name
 PACKETS = {
     "packet_05": "digital (room rent within limit)",
     "packet_11": "scanned hospital bill (proportional room-rent case)",
@@ -144,6 +147,7 @@ def run_compiler(client, policy, gold):
     if result is not None:
         (OUT / "compiled_rulebook_live.json").write_text(json.dumps({
             "policy_id": result.policy_id,
+            "ambiguities": [a.model_dump(mode="json") for a in getattr(result, "ambiguities", [])],
             "model": result.model,
             "rules": [r.model_dump(mode="json") for r in result.rules],
             "citation_checks": {k: v.model_dump(mode="json") for k, v in result.citation_checks.items()},
@@ -208,7 +212,14 @@ def compare_compiler(result, error, raw_calls, policy, gold):
                     for r in raw_rules if isinstance(r, dict) and r.get("rule_id") not in accepted_ids
                     and re.search(r"pre.?existing|ambig", json.dumps(r), re.I)]
     pre_raw = bool(re.search(r"pre.?existing", raw_text, re.I))
-    ambiguity = ("yes, as an accepted rule: " + ", ".join(r.rule_id for r in pre_rule)) if pre_rule else \
+    pre_amb = [a for a in getattr(result, "ambiguities", [])
+               if re.search(r"pre.?existing|4\.1", f"{a.section} {a.description} {a.issue} {a.source.quote}", re.I)]
+    amb_checks = getattr(result, "ambiguity_checks", {})
+    ambiguity = ("yes, as a compiled ambiguity: " + ", ".join(
+                    f"`{a.ambiguity_id}` ({a.section}, p{a.source.page}, citation "
+                    f"{'verified' if amb_checks.get(a.ambiguity_id) and amb_checks[a.ambiguity_id].verified else 'NOT verified'})"
+                    for a in pre_amb)) if pre_amb else \
+                ("yes, as an accepted rule: " + ", ".join(r.rule_id for r in pre_rule)) if pre_rule else \
                 ("proposed but rejected by validation: " + "; ".join(pre_rejected)) if pre_rejected else \
                 ("mentioned in the raw reply but not emitted as a rule" if pre_raw else "**no** (not mentioned anywhere in the reply)")
 
@@ -242,6 +253,9 @@ def compare_compiler(result, error, raw_calls, policy, gold):
     if result.rejected:
         lines += ["", "Rejected by validation (proposed by the model, not accepted):", ""]
         lines += [f"- {m}" for m in result.rejected]
+    other_ambs = [a for a in getattr(result, "ambiguities", []) if a not in pre_amb]
+    lines += ["", "## Other ambiguities reported by the compiler", ""]
+    lines += [f"- `{a.ambiguity_id}` ({a.section}, p{a.source.page}): {a.issue}" for a in other_ambs] or ["None."]
     lines += ["", "## Exact diffs (gold vs compiled)", ""]
     lines += diff_blocks or ["No parameter differences."]
     lines += ["", "## Totals", "",
@@ -297,7 +311,7 @@ def run_claims(client, compiled):
                        facts=[f.model_dump(mode="json") for f in result.facts],
                        citation_checks={k: v.model_dump(mode="json") for k, v in result.citation_checks.items()},
                        needs_review=result.needs_review, rejected=result.rejected)
-        (folder / "extracted_facts_live.json").write_text(json.dumps(out, indent=2, ensure_ascii=False),
+        (folder / f"extracted_facts_{RUN_TAG}.json").write_text(json.dumps(out, indent=2, ensure_ascii=False),
                                                           encoding="utf-8")
 
         if result is None:
