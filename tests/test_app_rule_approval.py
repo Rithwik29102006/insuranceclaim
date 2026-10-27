@@ -48,7 +48,7 @@ def test_live_flow_requires_approval_then_applies_rules(live_env):
     _button(at, "1. Compile policy rules").click().run(timeout=60)
     assert at.session_state["compilation"] is not None
     assert any("Review compiled policy rules" in h.value for h in at.subheader)
-    assert len(at.checkbox) == 5
+    assert len(at.checkbox) == 11
     assert all(cb.value for cb in at.checkbox)  # verified rules are pre-ticked for review
 
     # Run before approving: everything is needs_review
@@ -57,7 +57,7 @@ def test_live_flow_requires_approval_then_applies_rules(live_env):
 
     # Approve, then run again: the non-payable rule is applied
     _button(at, "Approve selected rules").click().run(timeout=60)
-    assert len(at.session_state["approved_rule_ids"]) == 5
+    assert len(at.session_state["approved_rule_ids"]) == 11
     _button(at, "Run Adjudication Analysis").click().run(timeout=60)
     assert _finding_counts(at)["Violated Rules"] >= 1
     assert at.session_state["result"].approved_rule_ids

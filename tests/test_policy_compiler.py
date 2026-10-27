@@ -62,8 +62,8 @@ def _compile(policy, rules=None, content=None):
 
 def test_correct_output_is_fully_verified(policy, gold):
     result, client = _compile(policy, _gold_as_model_output(gold))
-    assert len(result.rules) == 5
-    assert result.verified_count == 5
+    assert len(result.rules) == len(gold.rules)
+    assert result.verified_count == len(gold.rules)
     assert result.rejected == []
     assert all(r.validation_status == "draft" for r in result.rules)
     assert not any(r.human_review_required for r in result.rules)
@@ -79,7 +79,7 @@ def test_invented_quote_is_flagged_for_review(policy, gold):
     first = result.rules[0]
     assert first.human_review_required is True
     assert result.citation_checks[first.rule_id].reason == "not_found"
-    assert result.verified_count == 4
+    assert result.verified_count == len(gold.rules) - 1
 
 
 def test_wrong_page_is_flagged_for_review(policy, gold):
@@ -94,7 +94,7 @@ def test_invalid_rule_type_is_rejected_not_crashing(policy, gold):
     rules = _gold_as_model_output(gold)
     rules[1]["rule_type"] = "free_money"
     result, _ = _compile(policy, rules)
-    assert len(result.rules) == 4
+    assert len(result.rules) == len(gold.rules) - 1
     assert len(result.rejected) == 1
 
 
@@ -102,7 +102,7 @@ def test_duplicate_rule_id_is_rejected(policy, gold):
     rules = _gold_as_model_output(gold)
     rules.append(dict(rules[0]))
     result, _ = _compile(policy, rules)
-    assert len(result.rules) == 5
+    assert len(result.rules) == len(gold.rules)
     assert any("duplicate" in msg for msg in result.rejected)
 
 
@@ -110,7 +110,7 @@ def test_think_block_and_code_fence_are_ignored(policy, gold):
     payload = json.dumps({"rules": _gold_as_model_output(gold)})
     content = f"<think>Let me read the policy {{carefully}}.</think>\n```json\n{payload}\n```"
     result, _ = _compile(policy, content=content)
-    assert len(result.rules) == 5
+    assert len(result.rules) == len(gold.rules)
 
 
 def test_missing_rules_key_raises(policy):
@@ -127,7 +127,7 @@ def test_result_converts_to_rulebook(policy, gold):
     result, _ = _compile(policy, _gold_as_model_output(gold))
     rulebook = result.to_rulebook()
     assert rulebook.policy_id == "POL-TEST"
-    assert len(rulebook.rules) == 5
+    assert len(rulebook.rules) == len(gold.rules)
 
 
 def test_missing_api_key_gives_clear_error(monkeypatch):
