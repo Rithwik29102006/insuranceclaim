@@ -381,7 +381,14 @@ def analyze(
                 cdoc = load_claim_document(cbytes, document_id=name)
                 claim_doc_list.append(cdoc)
 
-            extract_res = extract_claim_facts(claim_doc_list)
+            # Tell the extractor which bill lines this policy excludes, taken from the
+            # compiled rulebook, so non-payable charges are matched in live mode.
+            non_payable_items = next(
+                (r.parameters.get("excluded_items") for r in rulebook.rules
+                 if str(getattr(r.rule_type, "value", r.rule_type)) == "non_payable_items"),
+                None,
+            )
+            extract_res = extract_claim_facts(claim_doc_list, non_payable_items=non_payable_items or None)
             result.extracted_facts = extract_res.facts
             result.timings["extractor_sec"] = time.time() - t_ext
 

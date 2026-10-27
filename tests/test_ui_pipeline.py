@@ -263,3 +263,80 @@ def test_app_imports_cleanly():
     import app
     assert hasattr(app, "main")
     assert hasattr(app, "PACKET_CATALOG")
+
+
+# -----------------------------------------------------------------------------
+# 5. Live Mode Path with a Fake Nemotron Client (no network)
+# -----------------------------------------------------------------------------
+class _FakeNemotron:
+    """Answers the compiler with the gold rulebook and the extractor with packet ground truth."""
+
+    def __init__(self, packet_id: str):
+        import json as _json
+        import types as _types
+        root = Path(__file__).resolve().parent.parent
+        gold = _json.loads((root / "data" / "gold_rulebook.json").read_text(encoding="utf-8"))
+        self.compile_reply = _json.dumps({
+            "rules": [{k: r[k] for k in ("rule_id", "rule_type", "description", "parameters", "exceptions")}
+                      | {"source": {"page": r["source"]["page"], "quote": r["source"]["quote"]}}
+                      for r in gold["rules"]],
+            "ambiguities": [{k: a[k] for k in ("ambiguity_id", "section", "description", "issue")}
+                            | {"source": {"page": a["source"]["page"], "quote": a["source"]["quote"]}}
+                            for a in gold["ambiguities"]],
+        })
+        facts = _json.loads((root / "data" / "packets" / packet_id / "ground_truth_facts.json").read_text())
+        self.extract_reply = _json.dumps({"facts": facts})
+        self.prompts = []
+        self.chat = _types.SimpleNamespace(completions=_types.SimpleNamespace(create=self._create))
+
+    def _create(self, **kwargs):
+        import types as _types
+        user = kwargs["messages"][1]["content"]
+        self.prompts.append(user)
+        content = self.compile_reply if "Extract every rule" in user else self.extract_reply
+        msg = _types.SimpleNamespace(content=content)
+        return _types.SimpleNamespace(choices=[_types.SimpleNamespace(message=msg, finish_reason="stop")])
+
+
+def _run_live(policy_bytes, packet_id, monkeypatch):
+    monkeypatch.setenv("NEBIUS_API_KEY", "dummy-live-key")
+    monkeypatch.setenv("NEBIUS_MODEL_FAST", "fake-fast")
+    monkeypatch.setenv("NEBIUS_MODEL_REASONING", "fake-reasoning")
+    fake = _FakeNemotron(packet_id)
+    monkeypatch.setattr("src.ai.policy_compiler.get_client", lambda: fake)
+    monkeypatch.setattr("src.ai.claim_extractor.get_client", lambda: fake)
+    result = analyze(policy_bytes, _load_packet_claim_pdfs(packet_id), mode="live")
+    return result, fake
+
+
+def test_live_mode_runs_end_to_end_with_fake_client(policy_bytes: bytes, monkeypatch):
+    result, fake = _run_live(policy_bytes, "packet_08", monkeypatch)
+    assert result.mode == "LIVE"
+    assert result.errors == []
+    assert len(fake.prompts) == 2
+    assert len(result.rulebook.rules) == 5
+    assert all(result.rule_validation_status.values())
+
+
+def test_live_mode_passes_policy_non_payable_items_to_extractor(policy_bytes: bytes, monkeypatch):
+    _, fake = _run_live(policy_bytes, "packet_08", monkeypatch)
+    extraction_prompt = fake.prompts[1]
+    assert "non-payable: registration_fees" in extraction_prompt
+    assert "luxury_patient_amenity_kits" in extraction_prompt
+
+
+def test_live_mode_reports_compiled_ambiguity(policy_bytes: bytes, monkeypatch):
+    result, _ = _run_live(policy_bytes, "packet_12", monkeypatch)
+    assert any("AMB_PRE_EXISTING_CONDITIONS" in item for item in result.unresolved_items)
+
+
+@pytest.mark.xfail(
+    reason="Open team decision: compiled rules stay 'draft', and the engine only applies "
+           "'validated' rules, so live mode returns needs_review for every rule. Decide whether "
+           "citation-verified rules are auto-validated or approved by a person in the UI.",
+    strict=True,
+)
+def test_live_mode_produces_real_findings_for_verified_rules(policy_bytes: bytes, monkeypatch):
+    result, _ = _run_live(policy_bytes, "packet_08", monkeypatch)
+    statuses = {f.rule_id: str(getattr(f.status, "value", f.status)) for f in result.findings}
+    assert statuses["RULE_NON_PAYABLE_ITEMS"] == "violated"
