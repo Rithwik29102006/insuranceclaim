@@ -298,14 +298,15 @@ class _FakeNemotron:
         return _types.SimpleNamespace(choices=[_types.SimpleNamespace(message=msg, finish_reason="stop")])
 
 
-def _run_live(policy_bytes, packet_id, monkeypatch):
+def _run_live(policy_bytes, packet_id, monkeypatch, approved_rule_ids=None, compilation=None):
     monkeypatch.setenv("NEBIUS_API_KEY", "dummy-live-key")
     monkeypatch.setenv("NEBIUS_MODEL_FAST", "fake-fast")
     monkeypatch.setenv("NEBIUS_MODEL_REASONING", "fake-reasoning")
     fake = _FakeNemotron(packet_id)
     monkeypatch.setattr("src.ai.policy_compiler.get_client", lambda: fake)
     monkeypatch.setattr("src.ai.claim_extractor.get_client", lambda: fake)
-    result = analyze(policy_bytes, _load_packet_claim_pdfs(packet_id), mode="live")
+    result = analyze(policy_bytes, _load_packet_claim_pdfs(packet_id), mode="live",
+                     compilation=compilation, approved_rule_ids=approved_rule_ids)
     return result, fake
 
 
@@ -330,13 +331,62 @@ def test_live_mode_reports_compiled_ambiguity(policy_bytes: bytes, monkeypatch):
     assert any("AMB_PRE_EXISTING_CONDITIONS" in item for item in result.unresolved_items)
 
 
-@pytest.mark.xfail(
-    reason="Open team decision: compiled rules stay 'draft', and the engine only applies "
-           "'validated' rules, so live mode returns needs_review for every rule. Decide whether "
-           "citation-verified rules are auto-validated or approved by a person in the UI.",
-    strict=True,
-)
-def test_live_mode_produces_real_findings_for_verified_rules(policy_bytes: bytes, monkeypatch):
+def _statuses(result):
+    return {f.rule_id: str(getattr(f.status, "value", f.status)) for f in result.findings}
+
+
+def test_live_mode_without_approval_reports_needs_review(policy_bytes: bytes, monkeypatch):
     result, _ = _run_live(policy_bytes, "packet_08", monkeypatch)
-    statuses = {f.rule_id: str(getattr(f.status, "value", f.status)) for f in result.findings}
+    assert set(_statuses(result).values()) == {"needs_review"}
+    assert result.approved_rule_ids == []
+    assert any("No compiled rules have been approved" in item for item in result.unresolved_items)
+
+
+def test_live_mode_applies_approved_verified_rules(policy_bytes: bytes, monkeypatch):
+    all_ids = ["RULE_REQ_DOCS", "RULE_WAITING_PERIOD", "RULE_ROOM_RENT_CAP",
+               "RULE_CATARACT_SUBLIMIT", "RULE_NON_PAYABLE_ITEMS"]
+    result, _ = _run_live(policy_bytes, "packet_08", monkeypatch, approved_rule_ids=all_ids)
+    statuses = _statuses(result)
     assert statuses["RULE_NON_PAYABLE_ITEMS"] == "violated"
+    finding = next(f for f in result.findings if f.rule_id == "RULE_NON_PAYABLE_ITEMS")
+    assert finding.estimated_impact == 3000.0
+    assert sorted(result.approved_rule_ids) == sorted(all_ids)
+
+
+def test_live_mode_only_applies_the_rules_that_were_approved(policy_bytes: bytes, monkeypatch):
+    result, _ = _run_live(policy_bytes, "packet_08", monkeypatch, approved_rule_ids=["RULE_REQ_DOCS"])
+    statuses = _statuses(result)
+    assert statuses["RULE_NON_PAYABLE_ITEMS"] == "needs_review"
+    assert statuses["RULE_REQ_DOCS"] != "needs_review"
+
+
+def test_rule_with_unverified_quote_cannot_be_approved(policy_bytes: bytes, monkeypatch):
+    import json as _json
+    from src.pipeline import approvable_rule_ids, compile_policy
+    monkeypatch.setenv("NEBIUS_MODEL_REASONING", "fake-reasoning")
+    fake = _FakeNemotron("packet_08")
+    reply = _json.loads(fake.compile_reply)
+    for rule in reply["rules"]:
+        if rule["rule_id"] == "RULE_NON_PAYABLE_ITEMS":
+            rule["source"]["quote"] = "Gloves are always payable."
+    fake.compile_reply = _json.dumps(reply)
+    monkeypatch.setattr("src.ai.policy_compiler.get_client", lambda: fake)
+    compilation = compile_policy(policy_bytes)
+    assert "RULE_NON_PAYABLE_ITEMS" not in approvable_rule_ids(compilation)
+
+    result, _ = _run_live(policy_bytes, "packet_08", monkeypatch, compilation=compilation,
+                          approved_rule_ids=["RULE_NON_PAYABLE_ITEMS"])
+    assert _statuses(result)["RULE_NON_PAYABLE_ITEMS"] == "needs_review"
+    assert result.approved_rule_ids == []
+
+
+def test_reviewed_compilation_is_reused_not_recompiled(policy_bytes: bytes, monkeypatch):
+    from src.pipeline import compile_policy
+    monkeypatch.setenv("NEBIUS_MODEL_REASONING", "fake-reasoning")
+    fake = _FakeNemotron("packet_08")
+    monkeypatch.setattr("src.ai.policy_compiler.get_client", lambda: fake)
+    compilation = compile_policy(policy_bytes)
+    result, fake2 = _run_live(policy_bytes, "packet_08", monkeypatch, compilation=compilation,
+                              approved_rule_ids=["RULE_REQ_DOCS"])
+    assert len(fake2.prompts) == 1  # only the claim extraction call
+    assert compilation.rules[0].validation_status == "draft"  # the reviewed copy is not mutated
