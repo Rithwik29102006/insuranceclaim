@@ -92,6 +92,11 @@ FACT_SCHEMA = """Use exactly these fact names and value shapes:
 Omit a fact entirely if the documents do not mention it. Use null for any value that is not stated.
 Write amounts as plain numbers in INR without commas or currency symbols."""
 
+CASHLESS_HINT = """This is a CASHLESS PRE-AUTHORISATION request, sent before or at admission. The bill amounts are the
+doctor's cost estimate, not final bills: extract them into the same facts (room_rent_billing, professional_fees_billing,
+operation_theatre_billing, surgical_expenses, non_payable_items_breakdown) using the estimated amounts, and fill
+preauthorization_request and claim_amount_summary (total_claimed = the estimate total)."""
+
 NON_PAYABLE_HINT = """The policy lists these items as non-payable: {items}.
 For non_payable_items_breakdown, include every billed line item that matches one of them (same meaning,
 even if worded differently), using the policy's name for "item" and the billed amount. Quote the bill lines."""
@@ -177,6 +182,7 @@ def extract_claim_facts(
     client=None,
     model: Optional[str] = None,
     non_payable_items: Optional[List[str]] = None,
+    claim_type: str = "reimbursement",
 ) -> ClaimExtractionResult:
     """Ask Nemotron (fast model) for claim facts, validate them, and verify every citation.
 
@@ -193,7 +199,7 @@ def extract_claim_facts(
 
     user = USER_TEMPLATE.format(
         document_ids=", ".join(by_id),
-        fact_schema=FACT_SCHEMA,
+        fact_schema=(CASHLESS_HINT + "\n\n" + FACT_SCHEMA) if str(claim_type).lower().startswith("cash") else FACT_SCHEMA,
         non_payable_hint=(
             "\n" + NON_PAYABLE_HINT.format(items=", ".join(non_payable_items)) + "\n"
             if non_payable_items else ""
