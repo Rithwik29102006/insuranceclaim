@@ -26,11 +26,18 @@ def live_env(monkeypatch):
     return fake
 
 
+PAGES = ["1. Claim setup", "2. Policy rules", "3. Results & verdict"]
+
+
 def _start_live(at: AppTest) -> AppTest:
     at.run(timeout=60)
-    next(r for r in at.sidebar.radio if r.label == "Check mode").set_value("Live AI (NVIDIA Nemotron)").run(timeout=60)
-    at.sidebar.selectbox[0].set_value("packet_08").run(timeout=60)
+    at.radio(key="w_mode").set_value("Live AI (NVIDIA Nemotron)").run(timeout=60)
+    at.selectbox(key="w_case").set_value("packet_08").run(timeout=60)
     return at
+
+
+def _goto(at: AppTest, page: str) -> AppTest:
+    return at.radio(key="nav").set_value(page).run(timeout=60)
 
 
 def _button(at: AppTest, label_start: str):
@@ -47,15 +54,18 @@ def test_live_flow_requires_approval_then_applies_rules(live_env):
 
     _button(at, "Read the policy with AI").click().run(timeout=60)
     assert at.session_state["compilation"] is not None
-    assert any("Check the rules the AI read" in h.value for h in at.subheader)
+    assert at.session_state["nav"] == PAGES[1]          # taken to the rules step
     assert len(at.checkbox) == 11
-    assert all(cb.value for cb in at.checkbox)  # verified rules are pre-ticked for review
+    assert all(cb.value for cb in at.checkbox)            # verified rules are pre-ticked for review
 
     # Check before approving: nothing is decided
+    _goto(at, PAGES[0])
     _button(at, "Check my claim").click().run(timeout=60)
+    assert at.session_state["nav"] == PAGES[2]
     assert _violations(at) == 0
 
-    # Approve, then check again: the non-payable rule is applied
+    # Approve, then check again from the rules step: the non-payable rule is applied
+    _goto(at, PAGES[1])
     _button(at, "Approve selected rules").click().run(timeout=60)
     assert len(at.session_state["approved_rule_ids"]) == 11
     _button(at, "Check my claim").click().run(timeout=60)
@@ -66,7 +76,7 @@ def test_live_flow_requires_approval_then_applies_rules(live_env):
 def test_unticked_rule_is_not_approved(live_env):
     at = _start_live(AppTest.from_file(str(APP_PATH), default_timeout=60))
     _button(at, "Read the policy with AI").click().run(timeout=60)
-    next(cb for cb in at.checkbox if cb.key == "approve_RULE_NON_PAYABLE_ITEMS").uncheck()
+    at.checkbox(key="approve_RULE_NON_PAYABLE_ITEMS").uncheck()
     _button(at, "Approve selected rules").click().run(timeout=60)
     assert "RULE_NON_PAYABLE_ITEMS" not in at.session_state["approved_rule_ids"]
     _button(at, "Check my claim").click().run(timeout=60)
@@ -81,4 +91,18 @@ def test_failed_live_check_shows_error_not_a_result(live_env, monkeypatch):
     at = _start_live(AppTest.from_file(str(APP_PATH), default_timeout=60))
     _button(at, "Check my claim").click().run(timeout=60)
     assert any("could not be checked" in e.value for e in at.error)
-    assert not any('class="cc-hero"' in m.value for m in at.markdown)
+    assert not any('class="cc-card cc-verdict"' in m.value for m in at.markdown)
+
+
+def test_every_page_renders_for_every_demo_case():
+    at = AppTest.from_file(str(APP_PATH), default_timeout=60)
+    at.run(timeout=60)
+    for claim in ("Reimbursement", "Cashless pre-approval"):
+        at.radio(key="w_claim").set_value(claim).run(timeout=60)
+        for case in [o for o in at.selectbox(key="w_case").options if o.startswith("case_")]:
+            _goto(at, "1. Claim setup")
+            at.selectbox(key="w_case").set_value(case).run(timeout=60)
+            _button(at, "Check my claim").click().run(timeout=60)
+            for page in at.radio(key="nav").options:
+                _goto(at, page)
+                assert not at.exception, (claim, case, page, at.exception[0].value if at.exception else "")
