@@ -31,7 +31,14 @@ def get_client(api_key: str | None = None, base_url: str | None = None) -> OpenA
     key = api_key or settings.get_nebius_api_key()
     if not key:
         raise NebiusConfigError("NEBIUS_API_KEY is not set. Add it to your .env file.")
-    return OpenAI(api_key=key, base_url=base_url or settings.get_nebius_base_url())
+    # A hard time limit per request: a slow or stuck reply becomes a clear error
+    # instead of a spinner that never ends. Override with NEBIUS_TIMEOUT_SEC.
+    try:
+        timeout = float(os.getenv("NEBIUS_TIMEOUT_SEC") or 300)
+    except ValueError:
+        timeout = 300.0
+    return OpenAI(api_key=key, base_url=base_url or settings.get_nebius_base_url(),
+                  timeout=timeout, max_retries=1)
 
 
 def get_model(kind: str = "reasoning") -> str:

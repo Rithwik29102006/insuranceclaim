@@ -58,11 +58,11 @@ def test_live_flow_requires_approval_then_applies_rules(live_env):
     assert len(at.checkbox) == 11
     assert all(cb.value for cb in at.checkbox)            # verified rules are pre-ticked for review
 
-    # Check before approving: nothing is decided
+    # Check before approving: no result; you are sent back to approve the rules
     _goto(at, PAGES[0])
     _button(at, "Check my claim").click().run(timeout=60)
-    assert at.session_state["nav"] == PAGES[2]
-    assert _violations(at) == 0
+    assert at.session_state["nav"] == PAGES[1]
+    assert at.session_state["result"] is None
 
     # Approve, then check again from the rules step: the non-payable rule is applied
     _goto(at, PAGES[1])
@@ -89,6 +89,9 @@ def test_failed_live_check_shows_error_not_a_result(live_env, monkeypatch):
         raise NebiusResponseError("Model returned invalid JSON: test")
     monkeypatch.setattr("src.ai.claim_extractor.chat_json", broken)
     at = _start_live(AppTest.from_file(str(APP_PATH), default_timeout=60))
+    _button(at, "Check my claim").click().run(timeout=60)      # reads the policy, goes to rules
+    assert at.session_state["nav"] == PAGES[1]
+    _button(at, "Approve selected rules").click().run(timeout=60)
     _button(at, "Check my claim").click().run(timeout=60)
     assert any("could not be checked" in e.value for e in at.error)
     assert not any('class="cc-card cc-verdict"' in m.value for m in at.markdown)

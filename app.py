@@ -514,7 +514,7 @@ def page_setup(cfg) -> None:
             setup["mode"] = "live" if mode == live_label and cfg.is_live_ready else "mock"
             if mode == live_label and not cfg.is_live_ready:
                 html(f'<div class="cc-card soft">{ms("key_off", size=20, color="var(--warn)")} <b>Live AI needs settings:</b> '
-                     f'{esc(", ".join(cfg.missing_variables))}. Add them to <code>.env</code>.</div>')
+                     f'{esc(", ".join(cfg.missing_variables))}. Add them to <code>.env</code> (on your computer) or the Streamlit Secrets (when deployed).</div>')
 
     with right:
         own = setup["source"] == "upload" and ss.own_policy
@@ -555,11 +555,17 @@ def page_setup(cfg) -> None:
         run_check()
 
 
+@st.cache_resource(show_spinner=False, max_entries=8)
+def _compile_cached(policy_hash: str, _policy_bytes: bytes):
+    """Read a policy with Nemotron once per policy file; later visitors reuse it."""
+    return compile_policy(_policy_bytes)
+
+
 def compile_now(policy_bytes: bytes) -> None:
     ss = st.session_state
-    with st.spinner("NVIDIA Nemotron is reading the policy..."):
+    with st.spinner("NVIDIA Nemotron is reading the policy. The first time takes 1-3 minutes..."):
         try:
-            ss.compilation = compile_policy(policy_bytes)
+            ss.compilation = _compile_cached(hashlib.sha1(policy_bytes).hexdigest(), policy_bytes)
             ss.compiled_policy_key = hashlib.sha1(policy_bytes).hexdigest()
             ss.approved_rule_ids = None
         except Exception as exc:
@@ -580,7 +586,17 @@ def run_check() -> None:
         return
     if setup["mode"] == "live" and ss.get("compiled_policy_key") != hashlib.sha1(policy_bytes).hexdigest():
         ss.compilation, ss.approved_rule_ids = None, None
-    with st.spinner("Checking the claim against the policy..."):
+    if setup["mode"] == "live" and not ss.approved_rule_ids:
+        # Human approval comes first: read the policy (if needed), then approve its rules.
+        ss.rules_notice = "Approve the policy rules below, then press Check my claim."
+        if ss.compilation is None:
+            compile_now(policy_bytes)
+        else:
+            go(PAGES[1])
+        return
+    wait = "Nemotron is reading your documents. This usually takes under a minute..." if setup["mode"] == "live" \
+        else "Checking the claim against the policy..."
+    with st.spinner(wait):
         ss.policy_bytes, ss.claim_pdfs = policy_bytes, files
         ss.tavily_results = {}
         ss.result = analyze(policy_pdf_bytes=policy_bytes, claim_pdfs=files, mode=setup["mode"],
@@ -611,6 +627,8 @@ def rule_card(rule, ok: bool) -> str:
 def page_rules(cfg) -> None:
     ss = st.session_state
     live = ss.setup["mode"] == "live"
+    if live and ss.get("rules_notice"):
+        st.info(ss.pop("rules_notice"), icon=":material/fact_check:")
     if live:
         comp = ss.compilation
         if comp is None:
@@ -690,7 +708,7 @@ def need_result() -> Optional[AnalysisResult]:
         st.error("The claim could not be checked.")
         for err in result.errors:
             st.caption(plain(err))
-        st.write("Try **Check my claim** again. If it keeps failing, check the API key and model names in `.env`, "
+        st.write("Try **Check my claim** again. If it keeps failing, check the API key and model names in `.env` (or the app's Secrets when deployed), "
                  "or switch to Demo data to see how the results look.")
         return None
     return result
