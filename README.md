@@ -9,7 +9,7 @@ Upload a reimbursement claim or a cashless pre-approval request with any documen
 - existing illnesses found in the medical records that were not declared;
 - which policy rules apply and which need a person to review.
 
-NVIDIA Nemotron on Nebius Token Factory reads the policy and the documents. Ordinary code checks every quote against the PDF and does all the arithmetic. A person approves the AI-read policy rules once per policy before they are used.
+NVIDIA Nemotron on Nebius Token Factory reads the policy and the documents. Ordinary code checks every quote against the PDF and does all the arithmetic. An AI-read policy rule is used only if its quote is found word for word on the cited policy page.
 
 ---
 
@@ -85,7 +85,7 @@ All features listed below are implemented and tested in the codebase:
 - Document Mistake Checks [MOCK, LIVE]: Patient name (tolerant of scanner letter confusions), policy number, admission and discharge dates, bill arithmetic, claimed vs billed, duplicate charges. These never deduct money; they tell the user what to fix.
 - Hidden Pre-Existing Disease Detection [LIVE]: Conditions are read from every document, including prescriptions and lab reports; a condition implied only by a long-term medicine is marked as inferred and always goes to review.
 - Payout Summary [MOCK, LIVE]: Claimed amount (never more than the bills) minus policy deductions, capped by the remaining sum insured, with one verdict: payable, needs review, fix documents, on hold, or not payable.
-- Human Approval of AI Rules [LIVE]: Rules compiled by Nemotron are applied only after a person approves them, and only if their quote was verified on the cited page.
+- Verified AI Rules [LIVE]: Rules compiled by Nemotron are applied only if their quote was verified on the cited page; the policy reading is cached per policy file.
 - Cross-Document Conflict Scoping [MOCK, LIVE]: Scoped duplicate detection ensuring distinct sub-bill totals (e.g. room rent vs professional fees) do not trigger false conflicts.
 - Evidence Citation Highlighter [MOCK, LIVE]: In-memory PyMuPDF rendering with exact clause bounding box highlight annotations.
 - Bounded Investigation Agent [MOCK, LIVE]: Fast model action selector with strict JSON validation, Pydantic schema enforcement, and a hard cap of 2 iterations.
@@ -177,7 +177,7 @@ Open `http://localhost:8501` in your browser.
 
 ### Try it
 1. **Demo data (no API keys):** choose the claim type, keep "Use a demo case", pick a case, and click **Check my claim**. The seven demo cases in `data/demo_cases/` cover a clean claim, document mistakes, an undeclared pre-existing disease (scanned prescription), pre/post-hospitalisation and ambulance limits, a road accident in the waiting period, and two cashless requests.
-2. **Live AI (your own documents):** add the keys to `.env`, choose "Live AI", click **Read the policy with AI**, review and approve the rules, upload your documents (or keep a demo case), and click **Check my claim**.
+2. **Live AI (your own documents):** add the keys to `.env`, choose "Live AI", upload your documents (or keep a demo case), and click **Check my claim**. Step 2 shows the rules Nemotron read from the policy.
 
 To regenerate the demo cases: `python benchmark/generate_demo_cases.py`.
 

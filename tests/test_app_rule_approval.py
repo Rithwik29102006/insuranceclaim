@@ -1,5 +1,5 @@
 """Drives app.py headlessly (Streamlit AppTest) through the live-mode approval flow
-with a fake Nemotron client: compile -> review -> approve -> analyze. No network."""
+with a fake Nemotron client: read policy -> use verified rules -> analyze. No network."""
 
 from __future__ import annotations
 
@@ -49,38 +49,20 @@ def _violations(at: AppTest) -> int:
     return sum(1 for f in result.findings if str(getattr(f.status, "value", f.status)) == "violated")
 
 
-def test_live_flow_requires_approval_then_applies_rules(live_env):
+def test_live_check_reads_policy_and_uses_verified_rules(live_env):
     at = _start_live(AppTest.from_file(str(APP_PATH), default_timeout=60))
-
-    _button(at, "Read the policy with AI").click().run(timeout=60)
+    _button(at, "Check my claim").click().run(timeout=60)
     assert at.session_state["compilation"] is not None
-    assert at.session_state["nav"] == PAGES[1]          # taken to the rules step
-    assert len(at.checkbox) == 11
-    assert all(cb.value for cb in at.checkbox)            # verified rules are pre-ticked for review
+    assert at.session_state["nav"] == PAGES[2]
+    result = at.session_state["result"]
+    assert len(result.approved_rule_ids) == 11            # every quote-verified rule is used
+    assert _violations(at) >= 1                           # the non-payable rule is applied
+    text = " ".join(m.value for m in at.markdown)
+    assert "is unverified (status:" not in text           # no engine wording on screen
 
-    # Check before approving: no result; you are sent back to approve the rules
-    _goto(at, PAGES[0])
-    _button(at, "Check my claim").click().run(timeout=60)
-    assert at.session_state["nav"] == PAGES[1]
-    assert at.session_state["result"] is None
-
-    # Approve, then check again from the rules step: the non-payable rule is applied
-    _goto(at, PAGES[1])
-    _button(at, "Approve selected rules").click().run(timeout=60)
-    assert len(at.session_state["approved_rule_ids"]) == 11
-    _button(at, "Check my claim").click().run(timeout=60)
-    assert _violations(at) >= 1
-    assert at.session_state["result"].approved_rule_ids
-
-
-def test_unticked_rule_is_not_approved(live_env):
-    at = _start_live(AppTest.from_file(str(APP_PATH), default_timeout=60))
-    _button(at, "Read the policy with AI").click().run(timeout=60)
-    at.checkbox(key="approve_RULE_NON_PAYABLE_ITEMS").uncheck()
-    _button(at, "Approve selected rules").click().run(timeout=60)
-    assert "RULE_NON_PAYABLE_ITEMS" not in at.session_state["approved_rule_ids"]
-    _button(at, "Check my claim").click().run(timeout=60)
-    assert _violations(at) == 0
+    _goto(at, PAGES[1])                                   # rules page is read-only
+    assert len(at.checkbox) == 0
+    assert not at.exception
 
 
 def test_failed_live_check_shows_error_not_a_result(live_env, monkeypatch):
@@ -89,9 +71,6 @@ def test_failed_live_check_shows_error_not_a_result(live_env, monkeypatch):
         raise NebiusResponseError("Model returned invalid JSON: test")
     monkeypatch.setattr("src.ai.claim_extractor.chat_json", broken)
     at = _start_live(AppTest.from_file(str(APP_PATH), default_timeout=60))
-    _button(at, "Check my claim").click().run(timeout=60)      # reads the policy, goes to rules
-    assert at.session_state["nav"] == PAGES[1]
-    _button(at, "Approve selected rules").click().run(timeout=60)
     _button(at, "Check my claim").click().run(timeout=60)
     assert any("could not be checked" in e.value for e in at.error)
     assert not any('class="cc-card cc-verdict"' in m.value for m in at.markdown)

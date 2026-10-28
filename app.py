@@ -4,7 +4,7 @@ Six steps: 1 claim setup, 2 policy rules, 3 results and verdict, 4 coverage time
 rules, 5 documents and medical history, 6 report. Every number shown comes from the
 real check: NVIDIA Nemotron on Nebius Token Factory reads the policy and the documents
 (Live AI), ordinary code verifies every quote and does all arithmetic, and a person
-approves the AI-read rules once per policy.
+uses only AI-read rules whose quote is found on the policy page.
 """
 
 from __future__ import annotations
@@ -257,8 +257,15 @@ def status_of(f: Finding) -> str:
     return str(getattr(f.status, "value", f.status)).lower()
 
 
+_UNVERIFIED = __import__("re").compile(r"Rule \S+ is unverified \(status: '[^']*'\) and requires review before adjudication\.?")
+
+
 def plain(text: str) -> str:
     import re as _re
+    text = _UNVERIFIED.sub("The AI could not find this rule's wording on the policy page, so it was not used. "
+                           "A claims officer should check this part by hand.", text or "")
+    text = text.replace("Rule is unverified or deprecated; cannot be deterministically enforced.",
+                        "This rule's wording could not be confirmed in the policy.")
     return _re.sub(r"INR\s*([\d,]+(?:\.\d+)?)", lambda m: inr(float(m.group(1).replace(",", ""))), text or "")
 
 
@@ -540,11 +547,8 @@ def page_setup(cfg) -> None:
           <h3 style="margin:.6rem 0 .5rem;font-size:1.15rem;padding:0">{title}</h3>{rows}{amount}</div>''')
         run = st.button("Check my claim", type="primary", width="stretch", icon=":material/verified:")
         if setup["mode"] == "live":
-            if st.button("Read the policy with AI", width="stretch", icon=":material/auto_stories:"):
-                compile_now(policy_bytes)
-            approved = ss.approved_rule_ids
-            st.caption("Rules approved: " + (f"{len(approved)}" if approved is not None else "not yet") +
-                       ". Approve the rules first, or every result will say Needs review.")
+            st.caption("NVIDIA Nemotron reads the policy and your documents. The first check takes 1-3 minutes; "
+                       "after that the policy is remembered.")
         else:
             st.caption("Takes about a second with demo data.")
         html(f'<div class="cc-card soft" style="margin-top:1rem">{ms("verified", True, 20, "var(--primary)")} '
@@ -586,14 +590,17 @@ def run_check() -> None:
         return
     if setup["mode"] == "live" and ss.get("compiled_policy_key") != hashlib.sha1(policy_bytes).hexdigest():
         ss.compilation, ss.approved_rule_ids = None, None
-    if setup["mode"] == "live" and not ss.approved_rule_ids:
-        # Human approval comes first: read the policy (if needed), then approve its rules.
-        ss.rules_notice = "Approve the policy rules below, then press Check my claim."
+    if setup["mode"] == "live":
         if ss.compilation is None:
-            compile_now(policy_bytes)
-        else:
-            go(PAGES[1])
-        return
+            with st.spinner("NVIDIA Nemotron is reading the policy. The first time takes 1-3 minutes..."):
+                try:
+                    ss.compilation = _compile_cached(hashlib.sha1(policy_bytes).hexdigest(), policy_bytes)
+                    ss.compiled_policy_key = hashlib.sha1(policy_bytes).hexdigest()
+                except Exception as exc:
+                    st.error(f"Could not read the policy: {type(exc).__name__}: {plain(str(exc))}")
+                    return
+        # Every rule whose quote was found word for word on its policy page is used.
+        ss.approved_rule_ids = approvable_rule_ids(ss.compilation)
     wait = "Nemotron is reading your documents. This usually takes under a minute..." if setup["mode"] == "live" \
         else "Checking the claim against the policy..."
     with st.spinner(wait):
@@ -616,7 +623,7 @@ def rule_card(rule, ok: bool) -> str:
                      for k, v in (rule.parameters or {}).items())
     exc = (f'<div class="cc-card soft" style="margin:0"><span class="cc-label">EXCEPTIONS</span><div>{esc("; ".join(rule.exceptions))}</div></div>'
            if rule.exceptions else "")
-    badge = pill("Quote verified", "ok", "check_circle") if ok else pill("Quote not found on page", "cut", "gpp_bad")
+    badge = pill("Quote found on page", "ok", "check_circle") if ok else pill("Not used: quote not found on page", "cut", "gpp_bad")
     return f'''<div class="cc-row"><div style="display:flex;gap:.7rem;align-items:center">{ms(RULE_ICONS.get(t, "rule"), size=24, color="var(--primary)")}
       <div><h3 style="margin:0;font-size:1.1rem;padding:0">{esc(rule_title_for(rule))}</h3><small style="color:var(--muted)">{esc(rule.description)}</small></div></div>
       <div style="text-align:right">{badge}<div style="color:var(--muted);font-size:.8rem;margin-top:.3rem">Page {rule.source.page}</div></div></div>
@@ -627,14 +634,12 @@ def rule_card(rule, ok: bool) -> str:
 def page_rules(cfg) -> None:
     ss = st.session_state
     live = ss.setup["mode"] == "live"
-    if live and ss.get("rules_notice"):
-        st.info(ss.pop("rules_notice"), icon=":material/fact_check:")
     if live:
         comp = ss.compilation
         if comp is None:
             html(f'<div class="cc-card">{ms("auto_stories", size=24, color="var(--primary)")} <b>The policy has not been read yet.</b>'
                  '<p class="cc-sub" style="margin-top:.4rem">NVIDIA Nemotron reads the policy and lists its rules, each with a '
-                 'quote. You approve them once, then every claim uses them.</p></div>')
+                 'quote that is checked against the policy page. The policy is read once and then remembered.</p></div>')
             if st.button("Read the policy with AI", type="primary", icon=":material/auto_stories:"):
                 compile_now(ss.pending_policy or DEFAULT_POLICY_PATH.read_bytes())
             return
@@ -646,19 +651,17 @@ def page_rules(cfg) -> None:
         rules, ambs, model = rb.rules, rb.ambiguities, None
 
     n_ok = sum(1 for r in rules if verified.get(r.rule_id))
-    approved = ss.approved_rule_ids
     intro = ("The AI read these rules from your policy. Each quote was checked word for word against the policy page. "
-             "<b>Only rules you approve are used to calculate your claim.</b>") if live else \
+             "<b>Only rules whose quote was found are used to calculate your claim.</b>") if live else \
         "These are the sample policy's rules. Each quote was checked word for word against the policy page. Demo data uses them directly."
     html(f'''<div class="cc-hero" style="display:flex;justify-content:space-between;gap:1.5rem;flex-wrap:wrap;align-items:center">
       <div style="max-width:680px">{pill("Read by NVIDIA Nemotron" if live else "Sample policy rules", "ok")}
-      <h1 style="font-size:1.8rem">Check the rules read from your policy</h1><p>{intro}</p></div>
+      <h1 style="font-size:1.8rem">Rules read from your policy</h1><p>{intro}</p></div>
       <div class="cc-card" style="margin:0;min-width:220px"><span class="cc-label">QUOTES FOUND ON THEIR PAGE</span>
       <div class="cc-money" style="font-size:2rem;color:var(--primary)">{n_ok} of {len(rules)}</div>
       <small style="color:var(--muted)">{esc(model) if model else "Checked against the sample policy PDF"}</small></div></div>''')
     if live:
-        status = (pill("Not approved yet", "review", "pending_actions") if approved is None
-                  else pill(f"{len(approved)} of {len(rules)} rules approved", "ok", "check_circle"))
+        status = pill(f"{n_ok} of {len(rules)} rules used", "ok", "check_circle")
         html(f'<div class="cc-card cc-row" style="align-items:center"><div><span class="cc-label">CURRENT POLICY</span>'
              f'<h3 style="margin:.2rem 0 0;font-size:1.1rem;padding:0">{esc(ss.setup.get("policy_name", "Policy"))}</h3></div>{status}</div>')
     for amb in ambs:
@@ -669,28 +672,9 @@ def page_rules(cfg) -> None:
           Claims that touch this are always sent to a person.</p></div>''')
 
     html(f'<h3 style="margin:1.2rem 0 .6rem">{ms("fact_check", size=24, color="var(--primary)")} Rules and their numbers</h3>')
-    if not live:
-        for rule in rules:
-            with st.container(border=True):
-                html(rule_card(rule, verified.get(rule.rule_id, False)))
-        return
-    with st.form("rule_approval_form"):
-        selections: Dict[str, bool] = {}
-        for rule in rules:
-            ok = verified[rule.rule_id]
-            with st.container(border=True):
-                html(rule_card(rule, ok))
-                default = ok if approved is None else rule.rule_id in approved
-                selections[rule.rule_id] = st.checkbox("Approve this rule" if ok else "Cannot approve: the quote was not found",
-                                                       value=default and ok, disabled=not ok, key=f"approve_{rule.rule_id}")
-        submitted = st.form_submit_button("Approve selected rules", type="primary", icon=":material/done_all:")
-    if submitted:
-        ss.approved_rule_ids = [rid for rid, ok in selections.items() if ok and verified.get(rid)]
-        st.rerun()
-    if approved is not None:
-        st.success(f"{len(approved)} rules approved. Now check the claim.")
-        if st.button("Check my claim", type="primary", icon=":material/verified:"):
-            run_check()
+    for rule in rules:
+        with st.container(border=True):
+            html(rule_card(rule, verified.get(rule.rule_id, False)))
 
 
 # =========================================================================== page 3: results
@@ -812,7 +796,8 @@ def attention(result: AnalysisResult) -> None:
         cards.append(("cut", "timer_off", "Policy steps not met", [f"{rule_title(f.rule_id, result)}: {explain(f, result)}" for f in blocking]))
     if review:
         cards.append(("review", "person_search", "A person must review",
-                      [explain(f, result) if (f.rule_id in types or f.rule_id.startswith("AMB")) else plain(f.explanation) for f in review]))
+                      [explain(f, result) if f.rule_id.startswith("AMB") else
+                       f"{rule_title(f.rule_id, result)}: {explain(f, result)}" if f.rule_id in types else plain(f.explanation) for f in review]))
     if missing:
         cards.append(("muted", "help", "Missing information", [f"{rule_title(f.rule_id, result)}: {plain(f.explanation)}" for f in missing]))
     if not cards:
@@ -1209,7 +1194,7 @@ def main() -> None:
     {PAGES[0]: page_setup, PAGES[1]: page_rules, PAGES[2]: page_results, PAGES[3]: page_timeline,
      PAGES[4]: page_documents, PAGES[5]: page_report}[page](cfg)
     html(f'<div class="cc-foot">{ms("verified", True, 16, "var(--primary)")} Amounts calculated by code &middot; quotes checked against the PDF '
-         '&middot; AI rules applied only after a person approves them. Fictional sample data; not an insurer\'s decision.</div>')
+         '&middot; AI rules used only when their quote is found in the policy. Fictional sample data; not an insurer\'s decision.</div>')
 
 
 if __name__ == "__main__":
