@@ -79,7 +79,7 @@ def _repair_json(text: str) -> str:
 
 def chat_json(client, model: str, system: str, user: str,
               temperature: float = 0.2, max_tokens: int = 8192,
-              retry_max_tokens: int = 16384) -> dict:
+              retry_max_tokens: int = 16384, thinking: bool = True) -> dict:
     """Call the model and parse its JSON answer.
 
     Nemotron 3 models reason before answering. If the reasoning uses up the output
@@ -90,12 +90,24 @@ def chat_json(client, model: str, system: str, user: str,
     attempts = 0
     while True:
         attempts += 1
-        response = client.chat.completions.create(
+        args = dict(
             model=model,
             messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
             temperature=temperature,
             max_tokens=budget,
         )
+        if not thinking:
+            # Nemotron 3: skip the reasoning trace for plain extraction (much faster).
+            args["extra_body"] = {"chat_template_kwargs": {"enable_thinking": False}}
+        try:
+            response = client.chat.completions.create(**args)
+        except Exception as exc:
+            if "extra_body" not in args or "BadRequest" not in type(exc).__name__:
+                raise
+            # The endpoint did not accept the switch: run with reasoning on instead.
+            args.pop("extra_body")
+            thinking = True
+            response = client.chat.completions.create(**args)
         choice = response.choices[0]
         content = choice.message.content
         finish = getattr(choice, "finish_reason", None)

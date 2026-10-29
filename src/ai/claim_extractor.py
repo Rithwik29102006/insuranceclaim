@@ -206,7 +206,7 @@ def extract_claim_facts(
         ),
         pages=_format_documents(documents),
     )
-    data = chat_json(client, model, SYSTEM_PROMPT, user)
+    data = chat_json(client, model, SYSTEM_PROMPT, user, thinking=False)
 
     raw_facts = data.get("facts")
     if not isinstance(raw_facts, list):
